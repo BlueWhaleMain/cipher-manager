@@ -131,6 +131,7 @@ def main():
                 else:
                     raise TypeError(type(cipher_file))
             elif cho == 'P':
+                crypt_algorithm = get_simple_crypt_algorithm(cipher_file)
                 __key = console.get_input('输入条目名称：')
                 __val = console.get_input('密码：', mask='*', v_callback=console.verify_input, v_args=('*',)).encode(
                     cipher_file.encoding)
