@@ -1,6 +1,7 @@
 import json
 import os
 import pickle
+import sys
 
 import pyDes
 from Crypto.Cipher import AES
@@ -43,7 +44,10 @@ def main():
         return ca
 
     console = Console()
-    cipher_path = console.get_input('输入密钥文件路径：')
+    if len(sys.argv) > 1:
+        cipher_path = sys.argv[1]
+    else:
+        cipher_path = console.get_input('输入密钥文件路径：')
     cipher_file = None
     if os.path.exists(cipher_path):
         with open(cipher_path, 'rb') as f:
