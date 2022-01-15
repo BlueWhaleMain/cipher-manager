@@ -37,24 +37,32 @@ def main():
         if crypt_algorithm is not None:
             return crypt_algorithm
         chl_ = ('G', 'I', 'Q')
-        cho_ = chl[console.choice('方式（G=生成，I=导入，Q=退出）', chl_)]
+        cho_ = chl_[console.choice('方式（G=生成，I=导入，Q=退出）', chl_)]
         if cho_ == 'G':
             pk = OpenSSL.crypto.PKey()
             pk.generate_key(OpenSSL.crypto.TYPE_RSA, int(console.get_input('输入密钥长度：')))
             puk = rsa.PublicKey.load_pkcs1_openssl_pem(OpenSSL.crypto.dump_publickey(OpenSSL.crypto.FILETYPE_PEM, pk))
-            prk = rsa.PrivateKey.load_pkcs1(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, pk))
-            pp_fp = console.get_input('输入pfx文件路径：')
+            prk = rsa.PrivateKey.load_pkcs1(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_ASN1, pk), 'DER')
+            cf.hash_algorithm_sign = rsa.sign(cf.sign_hash_algorithm.encode(cf.encoding), prk,
+                                              cf.sign_hash_algorithm).hex()
+            pp_fp = console.get_input('输入证书文件路径：')
             with open(pp_fp, 'wb') as pf:
-                pf.write(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, pk,
-                                                        console.get_input('输入pfx文件密码：', mask='*',
-                                                                          v_callback=console.verify_input,
-                                                                          v_args=('*',)).encode(cipher_file.encoding)))
+                pf.write(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, pk))
         elif cho_ == 'I':
-            pp_fp = console.get_input('输入pfx文件路径：')
-            pk = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.TYPE_RSA, open(pp_fp, 'rb').read(),
-                                                console.get_input('输入pfx文件密码：', mask='*').encode('UTF-8'))
+            pp_fp = console.get_input('输入证书文件路径：')
+            pp_pwd = None
+            try:
+                pp_pwd = console.get_input('输入证书文件密码（没有输入Ctrl+Z）：', mask='*').encode(cipher_file.encoding)
+            except KeyboardInterrupt:
+                pass
+            pk = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, open(pp_fp, 'rb').read(), pp_pwd)
             puk = rsa.PublicKey.load_pkcs1_openssl_pem(OpenSSL.crypto.dump_publickey(OpenSSL.crypto.FILETYPE_PEM, pk))
-            prk = rsa.PrivateKey.load_pkcs1(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, pk))
+            prk = None
+            try:
+                prk = rsa.PrivateKey.load_pkcs1(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_ASN1, pk), 'DER')
+            except Exception as ce:
+                print(ce)
+                print('导入私钥失败，仅验证模式。')
         elif cho_ == 'Q':
             raise RuntimeError('放弃加载密钥。')
         else:
@@ -186,6 +194,8 @@ def main():
                         f'选择读取的条目{[f"{i}={cipher_file.records[i].key}" for i in range(len(cipher_file.records))]}',
                         tuple(range(len(cipher_file.records))))
                     crypt_algorithm = get_or_create_pp_crypt_algorithm(cipher_file)
+                    if crypt_algorithm.readonly:
+                        raise RuntimeError('没有私钥无法操作')
                     if isinstance(cipher_file, CipherRSAFile):
                         if not crypt_algorithm.verify(
                                 (cipher_file.records[__k].key + cipher_file.records[__k].value).encode(
@@ -214,6 +224,8 @@ def main():
                         raise TypeError(type(cipher_file))
                 elif isinstance(cipher_file, PPCipherFile):
                     crypt_algorithm = get_or_create_pp_crypt_algorithm(cipher_file)
+                    if crypt_algorithm.readonly:
+                        raise RuntimeError('没有私钥无法操作')
                     if isinstance(cipher_file, CipherRSAFile):
                         __val = crypt_algorithm.rsa_encrypt(__val).hex()
                         cipher_file.records.append(
@@ -263,4 +275,4 @@ def main():
             with open(cipher_path, 'wb') as f:
                 pickle.dump(cipher_file, f)
             print('已保存。')
-        input('按Enter退出...')
+    input('按Enter退出...')

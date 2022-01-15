@@ -35,6 +35,6 @@ class PPCipherFile(CipherFile):
     # 签名使用的哈希算法
     sign_hash_algorithm: str
     # 哈希算法签名
-    hash_algorithm_sign: str
+    hash_algorithm_sign: str = ''
     # 记录
     records: typing.List[Record] = []
