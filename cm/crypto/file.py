@@ -21,3 +21,20 @@ class SimpleCipherFile(CipherFile):
     salt: str
     # 记录
     records: typing.List[Record] = []
+
+
+class PPCipherFile(CipherFile):
+    """ 公私钥文件 """
+
+    class Record(pydantic.BaseModel):
+        """ 记录 """
+        key: str
+        value: str
+        sign: str
+
+    # 签名使用的哈希算法
+    sign_hash_algorithm: str
+    # 哈希算法签名
+    hash_algorithm_sign: str
+    # 记录
+    records: typing.List[Record] = []
