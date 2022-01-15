@@ -46,8 +46,17 @@ def main():
             cf.hash_algorithm_sign = rsa.sign(cf.sign_hash_algorithm.encode(cf.encoding), prk,
                                               cf.sign_hash_algorithm).hex()
             pp_fp = console.get_input('输入证书文件路径：')
+            pp_pwd = None
+            try:
+                pp_pwd = console.get_input('输入证书文件密码（没有输入Ctrl+Z）：', mask='*', v_callback=console.verify_input,
+                                           v_args=('*',)).encode(cipher_file.encoding)
+            except KeyboardInterrupt:
+                pass
             with open(pp_fp, 'wb') as pf:
-                pf.write(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, pk))
+                if pp_pwd:
+                    pf.write(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, pk, 'des-ede3-cbc', pp_pwd))
+                else:
+                    pf.write(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, pk))
         elif cho_ == 'I':
             pp_fp = console.get_input('输入证书文件路径：')
             pp_pwd = None
@@ -176,6 +185,9 @@ def main():
                     raise TypeError(type(cipher_file))
             elif cho == 'G':
                 if isinstance(cipher_file, SimpleCipherFile):
+                    if not cipher_file.records:
+                        print('文件为空。')
+                        continue
                     __k = console.choice(
                         f'选择读取的条目{[f"{i}={cipher_file.records[i].key}" for i in range(len(cipher_file.records))]}',
                         tuple(range(len(cipher_file.records))))
@@ -190,6 +202,9 @@ def main():
                         raise TypeError(type(cipher_file))
                     console.protect_show(f'{value}\r')
                 elif isinstance(cipher_file, PPCipherFile):
+                    if not cipher_file.records:
+                        print('文件为空。')
+                        continue
                     __k = console.choice(
                         f'选择读取的条目{[f"{i}={cipher_file.records[i].key}" for i in range(len(cipher_file.records))]}',
                         tuple(range(len(cipher_file.records))))
