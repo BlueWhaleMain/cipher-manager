@@ -28,6 +28,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.action_open.triggered.connect(self.open_file)
         self.model.refreshed.connect(self.refresh)
         self.table_view.doubleClicked.connect(self.table_view_double_click)
+        self.table_view.action_remove.triggered.connect(self.remove_item)
 
     @report_with_exception
     def dragEnterEvent(self, e: QtGui.QDragEnterEvent) -> None:
@@ -42,15 +43,30 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.load_file(filepath)
 
     @report_with_exception
+    def closeEvent(self, e: QtGui.QCloseEvent) -> None:
+        if self.model.edited:
+            result = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Icon.Information, '退出', '有操作未保存',
+                QtWidgets.QMessageBox.Save | QtWidgets.QMessageBox.Close | QtWidgets.QMessageBox.Cancel).exec_()
+            if result == QtWidgets.QMessageBox.Save:
+                try:
+                    self.model.save_file()
+                    return
+                except Exception as ex:
+                    QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '保存失败', str(ex)).exec_()
+            elif result == QtWidgets.QMessageBox.Close:
+                return
+            e.ignore()
+
+    @report_with_exception
     def open_file(self, _):
-        filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, '选取文件', os.getcwd(), '所有文件(*);;Pickle文件(*.pkl)')
+        filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, '选择密钥文件', os.getcwd(), '所有文件(*);;Pickle文件(*.pkl)')
         self.load_file(filepath)
 
     def load_file(self, filepath: str):
         try:
             self.model.load_file(os.path.abspath(filepath))
-        except Exception as e:
-            self.__logger.error(e, exc_info=True)
+        except OSError as e:
             QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '文件读取失败', str(e)).exec_()
 
     @report_with_exception
@@ -61,4 +77,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     @report_with_exception
     def table_view_double_click(self, index: QtCore.QModelIndex):
-        pass
+        try:
+            self.model.try_edit(index.column(), index.row())
+        except KeyboardInterrupt:
+            pass
+        except RuntimeError as e:
+            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '修改失败', str(e)).exec_()
+
+    @report_with_exception
+    def remove_item(self, _):
+        try:
+            self.model.remove(self.table_view.currentIndex().row())
+        except RuntimeError as e:
+            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '修改失败', str(e)).exec_()

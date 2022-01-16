@@ -38,6 +38,7 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
         self._crypt_algorithm: typing.Optional[_CryptAlgorithm] = None
         self.dataChanged.connect(self.data_changed)
         self.refresh(reload=True)
+        self._edit_lock = False
 
     def build_crypt_algorithm(self):
         if isinstance(self._cipher_file, SimpleCipherFile):
@@ -52,7 +53,7 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
                     self._cipher_file.hash_algorithm).hash(rp + bytes.fromhex(self._cipher_file.salt)):
                 raise RuntimeError('密码错误！')
         elif isinstance(self._cipher_file, PPCipherFile):
-            filepath, _ = QtWidgets.QFileDialog.getOpenFileName(window, '选取文件', os.getcwd(),
+            filepath, _ = QtWidgets.QFileDialog.getOpenFileName(window, '选择包含密钥的文件', os.getcwd(),
                                                                 '所有文件(*);;加密证书文件(*.pfx,*.p12,*.jks);;'
                                                                 '二进制密钥文件(*.der,*.cer);;文本密钥文件(*.pem);;'
                                                                 '私钥文件(*.key);;包含公钥的证书(*.crt)')
@@ -97,23 +98,29 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
         self._cipher_file = None
         self._filepath = None
         self._edited = False
-        with open(filepath, 'rb') as f:
-            self._cipher_file = pickle.load(f)
-            self._filepath = filepath
         try:
+            with open(filepath, 'rb') as f:
+                self._cipher_file = pickle.load(f)
+                self._filepath = filepath
             self.build_crypt_algorithm()
         except KeyboardInterrupt:
-            pass
-        except Exception as e:
-            self.__logger.error(e, exc_info=True)
+            self._crypt_algorithm = None
+        except pickle.PickleError as e:
+            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '文件格式异常', str(e)).exec_()
+            self._crypt_algorithm = None
+        except RuntimeError as e:
             QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '解密失败', str(e)).exec_()
+            self._crypt_algorithm = None
         self.refresh(reload=True)
 
     def save_file(self, filepath: str = None):
         if not filepath:
+            if not self._filepath:
+                self._filepath = QtWidgets.QFileDialog.getSaveFileName(window, '保存密钥文件', os.getcwd(),
+                                                                       '所有文件(*);;Pickle文件(*.pkl)')
             filepath = self._filepath
-        if not filepath or not self._cipher_file:
-            raise RuntimeError
+        if not self._cipher_file:
+            raise RuntimeError('状态异常')
         with open(filepath, 'wb') as f:
             pickle.dump(self._cipher_file, f, self._cipher_file_protocol)
             self._edited = False
@@ -131,14 +138,15 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
             self.setHorizontalHeaderLabels(['名称', '值'])
             if isinstance(self._cipher_file, SimpleCipherFile):
                 for item in self._cipher_file.records:
-                    right = QtGui.QStandardItem(item.value)
-                    right.setEditable(False)
-                    self.appendRow((QtGui.QStandardItem(item.key), right))
+                    left, right = self._make_row()
+                    left.setText(item.key)
+                    right.setText(item.value)
+                    self.appendRow((left, right))
             elif isinstance(self._cipher_file, PPCipherFile):
                 for item in self._cipher_file.records:
-                    left = QtGui.QStandardItem(item.key)
-                    right = QtGui.QStandardItem(item.value)
-                    right.setEditable(False)
+                    left, right = self._make_row()
+                    left.setText(item.key)
+                    right.setText(item.value)
                     if isinstance(self._crypt_algorithm, RSACryptAlgorithm):
                         if not self._crypt_algorithm.verify((item.key + item.value).encode(self._cipher_file.encoding),
                                                             bytes.fromhex(item.sign)):
@@ -148,31 +156,139 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
                             right.setForeground(color_red)
                             right.setToolTip('损坏或被篡改')
                     else:
-                        color_yellow = QtGui.QColor('yellow')
-                        left.setForeground(color_yellow)
+                        color_orange = QtGui.QColor('orange')
+                        left.setForeground(color_orange)
                         left.setToolTip('未加载公钥无法验证')
-                        right.setForeground(color_yellow)
+                        right.setForeground(color_orange)
                         right.setToolTip('未加载公钥无法验证')
                     self.appendRow((left, right))
             self.add()
         self.refreshed.emit()
 
     def add(self):
+        self.appendRow(self._make_row())
+
+    def try_edit(self, col: int, row: int):
+        item = self.item(row, col)
+        if item.isEditable():
+            return
+        if not self._cipher_file:
+            self.make_cipher_file()
+        if not self._crypt_algorithm:
+            self.build_crypt_algorithm()
+        self._edit_lock = True
+        try:
+            if col == 0:
+                if isinstance(self._crypt_algorithm, RSACryptAlgorithm):
+                    if not self._crypt_algorithm.readonly:
+                        item.setEditable(True)
+                    return
+            elif col == 1:
+                item = self.item(row, 1)
+                if isinstance(self._cipher_file, CipherFile):
+                    value = bytes.fromhex(item.text())
+                    if isinstance(self._crypt_algorithm, DESCryptAlgorithm):
+                        value = self._crypt_algorithm.des_decrypt(value).rstrip(b'\0').decode(
+                            self._cipher_file.encoding)
+                    elif isinstance(self._crypt_algorithm, AESCryptAlgorithm):
+                        value = self._crypt_algorithm.aes_decrypt(value).rstrip(b'\0').decode(
+                            self._cipher_file.encoding)
+                    elif isinstance(self._crypt_algorithm, RSACryptAlgorithm):
+                        value = self._crypt_algorithm.rsa_decrypt(value).decode(self._cipher_file.encoding)
+                    else:
+                        return
+                    item.setText(value)
+                    item.setEditable(True)
+            else:
+                raise RuntimeError('状态异常')
+        finally:
+            self._edit_lock = False
+
+    def _make_row(self) -> tuple[QtGui.QStandardItem, QtGui.QStandardItem]:
+        left = QtGui.QStandardItem()
+        if isinstance(self._crypt_algorithm, RSACryptAlgorithm):
+            if self._crypt_algorithm.readonly:
+                left.setEditable(False)
         right = QtGui.QStandardItem()
         right.setEditable(False)
-        self.appendRow((QtGui.QStandardItem(), right))
+        return left, right
+
+    def _edit_simple_value(self, value: str) -> str:
+        value = value.encode(self._cipher_file.encoding)
+        if isinstance(self._crypt_algorithm, DESCryptAlgorithm):
+            value = self._crypt_algorithm.des_encrypt(value).hex()
+        elif isinstance(self._crypt_algorithm, AESCryptAlgorithm):
+            value = self._crypt_algorithm.aes_encrypt(value).hex()
+        else:
+            raise RuntimeError('无法修改')
+        return value
+
+    def _edit_pp_row(self, key: str, value: str) -> tuple[str, str, str]:
+        value = value.encode(self._cipher_file.encoding)
+        if isinstance(self._crypt_algorithm, RSACryptAlgorithm):
+            if self._crypt_algorithm.readonly:
+                raise RuntimeError('无法修改')
+            value = self._crypt_algorithm.rsa_encrypt(value).hex()
+            sign = self._crypt_algorithm.sign((key + value).encode()).hex()
+        else:
+            raise RuntimeError('无法修改')
+        return key, value, sign
+
+    def make_cipher_file(self):
+        pass
+
+    def _edit_data(self, col: int, row: int):
+        if isinstance(self._cipher_file, SimpleCipherFile):
+            key = self.item(row, 0).text()
+            if row < len(self._cipher_file.records):
+                if col == 0:
+                    self._cipher_file.records[row].key = key
+                elif col == 1:
+                    item = self.item(row, 1)
+                    value = self._edit_simple_value(item.text())
+                    self._cipher_file.records[row].value = value
+                else:
+                    raise RuntimeError('状态异常')
+            else:
+                item = self.item(row, 1)
+                value = self._edit_simple_value(item.text())
+                self._cipher_file.records.append(self._cipher_file.Record(key=key, value=value))
+        elif isinstance(self._cipher_file, PPCipherFile):
+            item = self.item(row, 1)
+            key, value, sign = self._edit_pp_row(self.item(row, 0).text(), item.text())
+            if row < len(self._cipher_file.records):
+                self._cipher_file.records[row].key = key
+                self._cipher_file.records[row].value = value
+                self._cipher_file.records[row].sign = sign
+            else:
+                self._cipher_file.records.append(self._cipher_file.Record(key=key, value=value, sign=sign))
+        else:
+            raise RuntimeError('未知文件格式')
 
     @report_with_exception
     def data_changed(self, index: QtCore.QModelIndex, _, __):
-        if isinstance(self._cipher_file, SimpleCipherFile):
-            if index.row() < len(self._cipher_file.records):
-                if index.column() == 0:
-                    self._cipher_file.records[index.row()].key = self.item(index.row(), 0).text()
-            # else:
-            #     self._cipher_file.records.append(self._cipher_file.Record(key=self.item(index.row(), 0).text(),
-            #                                                               value=self.item(index.row(), 1).text()))
+        col, row = index.column(), index.row()
+        if not self.item(row, col).isEditable() or self._edit_lock:
             return
-        if isinstance(self._cipher_file, PPCipherFile):
+        try:
+            if not self._cipher_file:
+                self.make_cipher_file()
+            if not self._crypt_algorithm:
+                self.build_crypt_algorithm()
+            self._edit_data(col, row)
+        except KeyboardInterrupt:
             pass
+        except RuntimeError as e:
+            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '修改失败', str(e)).exec_()
+        finally:
+            self._edited = True
+            self.refresh(reload=True)
+
+    def remove(self, row: int):
+        if isinstance(self._cipher_file, (SimpleCipherFile, PPCipherFile)):
+            self._cipher_file.records.pop(row)
+        else:
+            raise RuntimeError('未知文件格式')
+        self.removeRow(row)
         self._edited = True
-        self.refresh()
+        self.refresh(reload=True)
