@@ -1,3 +1,4 @@
+import logging
 import os
 
 from PyQt5 import QtWidgets, QtGui, QtCore
@@ -10,6 +11,8 @@ from gui.widgets.table_view.base import BaseTableView
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
+    __logger = logging.getLogger(__name__)
+
     def __init__(self, *args, **kwargs):
         if env.window is None:
             env.window = self
@@ -47,6 +50,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         try:
             self.model.load_file(os.path.abspath(filepath))
         except Exception as e:
+            self.__logger.error(e, exc_info=True)
             QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '文件读取失败', str(e)).exec_()
 
     @report_with_exception
@@ -58,4 +62,3 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     @report_with_exception
     def table_view_double_click(self, index: QtCore.QModelIndex):
         pass
-

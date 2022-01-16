@@ -15,7 +15,7 @@ def report_with_exception(func):
             try:
                 func(*args, **kwargs)
                 break
-            except Exception as e:
+            except BaseException as e:
                 __logger.error(e, exc_info=True)
                 result = QtWidgets.QMessageBox(
                     QtWidgets.QMessageBox.Icon.Critical, '致命异常', str(e),

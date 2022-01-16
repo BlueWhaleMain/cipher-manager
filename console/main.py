@@ -17,15 +17,9 @@ from cm.crypto.file import SimpleCipherFile, PPCipherFile
 from cm.crypto.rsa.base import RSACryptAlgorithm
 from cm.crypto.rsa.file import CipherRSAFile
 from cm.file import CipherFile
-from cm.hash.base import HashAlgorithm, Sha512
+from cm.hash import get_hash_algorithm
+from cm.hash.base import Sha512
 from console.base import Console
-
-
-def get_hash_algorithm(_type: str) -> HashAlgorithm:
-    if _type == Sha512.__TYPE__:
-        return Sha512()
-    raise ValueError
-
 
 ENCODING = 'UTF-8'
 
@@ -77,11 +71,11 @@ def main():
         else:
             raise RuntimeError(f'未知操作码：{cho_}。')
         if isinstance(cf, CipherRSAFile):
-            ca = RSACryptAlgorithm(Sha512.__TYPE__, puk, prk)
+            ca = RSACryptAlgorithm(cf.sign_hash_algorithm, puk, prk)
         else:
             raise RuntimeError(f'未知的加密方式：{cf.encrypt_algorithm}')
         if not ca.verify(cf.sign_hash_algorithm.encode(), bytes.fromhex(cf.hash_algorithm_sign)):
-            raise RuntimeError('密钥与文件不符、损坏，或者遭到篡改。')
+            raise RuntimeError('证书与密钥文件不符、文件损坏，或者遭到篡改。')
         return ca
 
     def get_simple_crypt_algorithm(cf: SimpleCipherFile):
