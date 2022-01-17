@@ -18,7 +18,7 @@ def report_with_exception(func):
             except BaseException as e:
                 __logger.error(e, exc_info=True)
                 result = QtWidgets.QMessageBox(
-                    QtWidgets.QMessageBox.Icon.Critical, '致命异常', str(e),
+                    QtWidgets.QMessageBox.Icon.Critical, '致命异常', f'{type(e).__name__}\r\n{e}',
                     QtWidgets.QMessageBox.Retry | QtWidgets.QMessageBox.Abort | QtWidgets.QMessageBox.Ignore,
                     window).exec_()
                 if result == QtWidgets.QMessageBox.Retry:

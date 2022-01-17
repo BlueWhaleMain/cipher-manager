@@ -20,6 +20,7 @@ from cm.file import CipherFile
 from cm.hash import get_hash_algorithm
 from gui.common.env import report_with_exception, window
 from gui.designer.impl.input_password_dialog import InputPasswordDialog
+from gui.designer.impl.new_cipher_file_dialog import NewCipherFileDialog
 
 _CipherFileType = typing.TypeVar('_CipherFileType', bound=CipherFile)
 _CryptAlgorithm = typing.TypeVar('_CryptAlgorithm', bound=CryptAlgorithm)
@@ -103,21 +104,19 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
                 self._cipher_file = pickle.load(f)
                 self._filepath = filepath
             self.build_crypt_algorithm()
+            self.refresh(reload=True)
+            return
         except KeyboardInterrupt:
-            self._crypt_algorithm = None
+            pass
         except pickle.PickleError as e:
-            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '文件格式异常', str(e)).exec_()
-            self._crypt_algorithm = None
-        except RuntimeError as e:
-            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '解密失败', str(e)).exec_()
-            self._crypt_algorithm = None
-        self.refresh(reload=True)
+            raise RuntimeError(e)
+        self._crypt_algorithm = None
 
     def save_file(self, filepath: str = None):
         if not filepath:
             if not self._filepath:
-                self._filepath = QtWidgets.QFileDialog.getSaveFileName(window, '保存密钥文件', os.getcwd(),
-                                                                       '所有文件(*);;Pickle文件(*.pkl)')
+                self._filepath, _ = QtWidgets.QFileDialog.getSaveFileName(window, '保存密钥文件', os.getcwd(),
+                                                                          '所有文件(*);;Pickle文件(*.pkl)')
             filepath = self._filepath
         if not self._cipher_file:
             raise RuntimeError('状态异常')
@@ -126,9 +125,11 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
             self._edited = False
         self.refresh(reload=True)
 
-    def dump_file(self, filepath: str):
+    def dump_file(self):
         if not self._cipher_file:
             raise RuntimeError
+        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(window, '导出密钥文件', os.getcwd(),
+                                                            '所有文件(*);;JSON文件(*.json)')
         with open(filepath, 'w') as f:
             json.dump(self._cipher_file.dict(), f, indent=2, cls=CryptoEncoder)
 
@@ -235,7 +236,7 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
         return key, value, sign
 
     def make_cipher_file(self):
-        pass
+        NewCipherFileDialog().create_file()
 
     def _edit_data(self, col: int, row: int):
         if isinstance(self._cipher_file, SimpleCipherFile):

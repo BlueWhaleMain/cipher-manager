@@ -29,11 +29,22 @@
     </rect>
    </property>
    <widget class="QMenu" name="menu_file">
+    <property name="focusPolicy">
+     <enum>Qt::NoFocus</enum>
+    </property>
+    <property name="toolTip">
+     <string/>
+    </property>
+    <property name="statusTip">
+     <string/>
+    </property>
     <property name="title">
      <string>文件</string>
     </property>
     <addaction name="action_new"/>
     <addaction name="action_open"/>
+    <addaction name="action_save"/>
+    <addaction name="action_export"/>
     <addaction name="action_attribute"/>
     <addaction name="action_exit"/>
    </widget>
@@ -50,20 +61,66 @@
    <property name="text">
     <string>新建</string>
    </property>
+   <property name="statusTip">
+    <string>新建</string>
+   </property>
+   <property name="shortcut">
+    <string>N</string>
+   </property>
   </action>
   <action name="action_open">
    <property name="text">
     <string>打开</string>
+   </property>
+   <property name="statusTip">
+    <string>打开</string>
+   </property>
+   <property name="shortcut">
+    <string>O</string>
    </property>
   </action>
   <action name="action_attribute">
    <property name="text">
     <string>属性</string>
    </property>
+   <property name="statusTip">
+    <string>属性</string>
+   </property>
+   <property name="shortcut">
+    <string>A</string>
+   </property>
   </action>
   <action name="action_exit">
    <property name="text">
     <string>退出</string>
+   </property>
+   <property name="statusTip">
+    <string>退出</string>
+   </property>
+   <property name="shortcut">
+    <string>X</string>
+   </property>
+  </action>
+  <action name="action_export">
+   <property name="text">
+    <string>导出</string>
+   </property>
+   <property name="statusTip">
+    <string>导出</string>
+   </property>
+   <property name="shortcut">
+    <string>E</string>
+   </property>
+  </action>
+  <action name="action_save">
+   <property name="text">
+    <string>保存</string>
+   </property>
+   <property name="statusTip">
+    <string>保存</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
    </property>
   </action>
  </widget>

@@ -25,7 +25,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.gridLayout.addWidget(self.table_view, 0, 0, 1, 1)
         self.model = CipherFileItemModel(self.table_view)
         self.table_view.setModel(self.model)
+        self.action_new.triggered.connect(self.new_file)
         self.action_open.triggered.connect(self.open_file)
+        self.action_save.triggered.connect(self.save_file)
+        self.action_export.triggered.connect(self.export_file)
         self.model.refreshed.connect(self.refresh)
         self.table_view.doubleClicked.connect(self.table_view_double_click)
         self.table_view.action_remove.triggered.connect(self.remove_item)
@@ -59,14 +62,35 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             e.ignore()
 
     @report_with_exception
+    def new_file(self, _):
+        try:
+            self.model.make_cipher_file()
+        except (OSError, RuntimeError) as e:
+            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '文件创建失败', str(e)).exec_()
+
+    @report_with_exception
     def open_file(self, _):
         filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, '选择密钥文件', os.getcwd(), '所有文件(*);;Pickle文件(*.pkl)')
         self.load_file(filepath)
 
+    @report_with_exception
+    def save_file(self, _):
+        try:
+            self.model.save_file()
+        except (OSError, RuntimeError) as e:
+            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '文件保存失败', str(e)).exec_()
+
+    @report_with_exception
+    def export_file(self, _):
+        try:
+            self.model.dump_file()
+        except (OSError, RuntimeError) as e:
+            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '文件导出失败', str(e)).exec_()
+
     def load_file(self, filepath: str):
         try:
             self.model.load_file(os.path.abspath(filepath))
-        except OSError as e:
+        except (OSError, RuntimeError) as e:
             QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '文件读取失败', str(e)).exec_()
 
     @report_with_exception
@@ -79,8 +103,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def table_view_double_click(self, index: QtCore.QModelIndex):
         try:
             self.model.try_edit(index.column(), index.row())
-        except KeyboardInterrupt:
-            pass
         except RuntimeError as e:
             QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '修改失败', str(e)).exec_()
 
