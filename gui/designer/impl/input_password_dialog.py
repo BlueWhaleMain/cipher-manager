@@ -17,7 +17,7 @@ class InputPasswordDialog(QtWidgets.QDialog, Ui_InputPasswordDialog):
         self._result = self.lineEdit.text()
         self.close()
 
-    def getpass(self, text: str = '输入密码', title: str = None) -> str:
+    def getpass(self, text: str = '输入密码', title: str = None, verify: bool = False) -> str:
         if title:
             self.setWindowTitle(title)
         self.lineEdit.setPlaceholderText(text)
@@ -25,4 +25,18 @@ class InputPasswordDialog(QtWidgets.QDialog, Ui_InputPasswordDialog):
         self.exec_()
         if self._result is None:
             raise KeyboardInterrupt
+        while verify:
+            self.setWindowTitle('再次输入确认')
+            result = self._result
+            self._result = None
+            self.lineEdit.clear()
+            self.exec_()
+            if self._result is None:
+                raise KeyboardInterrupt
+            elif self._result == result:
+                return result
+            else:
+                QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information, '请再输一遍', '两次输入不一致',
+                                      QtWidgets.QMessageBox.Ok).exec_()
+                self._result = result
         return self._result

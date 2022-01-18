@@ -71,7 +71,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     @report_with_exception
     def open_file(self, _):
         filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, '选择密钥文件', os.getcwd(), '所有文件(*);;Pickle文件(*.pkl)')
-        self.load_file(filepath)
+        if filepath:
+            self.load_file(filepath)
 
     @report_with_exception
     def save_file(self, _):

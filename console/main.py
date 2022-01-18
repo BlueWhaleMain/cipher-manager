@@ -33,6 +33,8 @@ def main():
         chl_ = ('G', 'I', 'Q')
         cho_ = chl_[console.choice('方式（G=生成，I=导入，Q=退出）', chl_)]
         if cho_ == 'G':
+            if cf.hash_algorithm_sign:
+                raise RuntimeError('该文件已经绑定了一个证书')
             pk = OpenSSL.crypto.PKey()
             pk.generate_key(OpenSSL.crypto.TYPE_RSA, int(console.get_input('输入密钥长度：')))
             puk = rsa.PublicKey.load_pkcs1_openssl_pem(OpenSSL.crypto.dump_publickey(OpenSSL.crypto.FILETYPE_PEM, pk))
@@ -121,7 +123,7 @@ def main():
             elif cho == 'A':
                 salt = random_bytes(32)
                 cipher_file = CipherAesFile(encoding=ENCODING, hash_algorithm=Sha512.__TYPE__, salt=salt.hex(),
-                                            aes_cfg=AesCfg(mode=AES.MODE_CBC, padmode=pyDes.PAD_PKCS5,
+                                            aes_cfg=AesCfg(mode=AES.MODE_CBC,
                                                            IV=AESCryptAlgorithm.generate_iv(AES.MODE_CBC)))
                 __root_pwd = console.get_input('输入根密码：', mask='*', v_callback=console.verify_input,
                                                v_args=('*',)).encode(cipher_file.encoding)

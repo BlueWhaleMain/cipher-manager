@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import pickle
+import threading
 import typing
 
 import OpenSSL
@@ -41,6 +42,49 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
         self.refresh(reload=True)
         self._edit_lock = False
 
+    @classmethod
+    def _spawn_pk(cls, pk: OpenSSL.crypto.PKey, _type, kl, progress: QtWidgets.QProgressDialog):
+        pk.generate_key(_type, kl)
+        progress.close()
+
+    def spawn_rsa_cert(self):
+        if not isinstance(self._cipher_file, CipherRSAFile):
+            raise RuntimeError('状态异常')
+        if self._cipher_file.hash_algorithm_sign:
+            raise RuntimeError('该文件已经绑定了一个证书')
+        pk = OpenSSL.crypto.PKey()
+        kl, ok = QtWidgets.QInputDialog().getInt(window, '生成密钥对', '输入密钥长度（必须是2的倍数）：', 4096)
+        if ok is False:
+            raise KeyboardInterrupt
+        progress = QtWidgets.QProgressDialog(window)
+        progress.setWindowTitle("请稍等")
+        progress.setLabelText("正在生成密钥...")
+        progress.setRange(0, 0)
+        threading.Timer(0, self._spawn_pk, (pk, OpenSSL.crypto.TYPE_RSA, kl, progress)).start()
+        progress.exec_()
+        puk = rsa.PublicKey.load_pkcs1_openssl_pem(OpenSSL.crypto.dump_publickey(OpenSSL.crypto.FILETYPE_PEM, pk))
+        prk = rsa.PrivateKey.load_pkcs1(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_ASN1, pk), 'DER')
+        self._cipher_file.hash_algorithm_sign = rsa.sign(
+            self._cipher_file.sign_hash_algorithm.encode(self._cipher_file.encoding), prk,
+            self._cipher_file.sign_hash_algorithm).hex()
+        pp_fp, _ = QtWidgets.QFileDialog().getSaveFileName(window, '保存证书文件', os.getcwd(),
+                                                           '所有文件(*);;加密证书文件(*.pfx,*.p12,*.jks);;'
+                                                           '二进制密钥文件(*.der,*.cer);;文本密钥文件(*.pem);;'
+                                                           '私钥文件(*.key);;包含公钥的证书(*.crt)')
+        if not pp_fp:
+            raise KeyboardInterrupt
+        pp_pwd = None
+        try:
+            pp_pwd = InputPasswordDialog().getpass('输入证书文件密码：', verify=True).encode(self._cipher_file.encoding)
+        except KeyboardInterrupt:
+            pass
+        with open(pp_fp, 'wb') as pf:
+            if pp_pwd:
+                pf.write(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, pk, 'des-ede3-cbc', pp_pwd))
+            else:
+                pf.write(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, pk))
+        return pp_fp, puk, prk
+
     def build_crypt_algorithm(self):
         if isinstance(self._cipher_file, SimpleCipherFile):
             rp = InputPasswordDialog().getpass('输入根密码').encode(self._cipher_file.encoding)
@@ -58,23 +102,28 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
                                                                 '所有文件(*);;加密证书文件(*.pfx,*.p12,*.jks);;'
                                                                 '二进制密钥文件(*.der,*.cer);;文本密钥文件(*.pem);;'
                                                                 '私钥文件(*.key);;包含公钥的证书(*.crt)')
+            puk = None
+            prk = None
+            if not filepath:
+                filepath, puk, prk = self.spawn_rsa_cert()
             if not filepath:
                 raise KeyboardInterrupt
-            pp_pwd = None
-            try:
-                pp_pwd = InputPasswordDialog().getpass('输入证书文件密码', '没有密码点击取消').encode(self._cipher_file.encoding)
-            except KeyboardInterrupt:
-                pass
-            with open(filepath, 'rb') as f:
-                pk = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, f.read(), pp_pwd)
-            puk = rsa.PublicKey.load_pkcs1_openssl_pem(
-                OpenSSL.crypto.dump_publickey(OpenSSL.crypto.FILETYPE_PEM, pk))
-            prk = None
-            try:
-                prk = rsa.PrivateKey.load_pkcs1(
-                    OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_ASN1, pk), 'DER')
-            except Exception as ce:
-                self.__logger.error(ce, exc_info=True)
+            if puk is None:
+                pp_pwd = None
+                try:
+                    pp_pwd = InputPasswordDialog().getpass('输入证书文件密码', '没有密码点击取消').encode(self._cipher_file.encoding)
+                except KeyboardInterrupt:
+                    pass
+                with open(filepath, 'rb') as f:
+                    pk = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, f.read(), pp_pwd)
+                puk = rsa.PublicKey.load_pkcs1_openssl_pem(
+                    OpenSSL.crypto.dump_publickey(OpenSSL.crypto.FILETYPE_PEM, pk))
+                prk = None
+                try:
+                    prk = rsa.PrivateKey.load_pkcs1(
+                        OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_ASN1, pk), 'DER')
+                except Exception as ce:
+                    self.__logger.error(ce, exc_info=True)
             if isinstance(self._cipher_file, CipherRSAFile):
                 self._crypt_algorithm = RSACryptAlgorithm(self._cipher_file.sign_hash_algorithm, puk, prk)
             else:
@@ -118,6 +167,8 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
                 self._filepath, _ = QtWidgets.QFileDialog.getSaveFileName(window, '保存密钥文件', os.getcwd(),
                                                                           '所有文件(*);;Pickle文件(*.pkl)')
             filepath = self._filepath
+        if not filepath:
+            raise KeyboardInterrupt
         if not self._cipher_file:
             raise RuntimeError('状态异常')
         with open(filepath, 'wb') as f:
@@ -236,7 +287,11 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
         return key, value, sign
 
     def make_cipher_file(self):
-        NewCipherFileDialog().create_file()
+        try:
+            self._cipher_file = NewCipherFileDialog().create_file()
+            self.save_file()
+        except KeyboardInterrupt:
+            pass
 
     def _edit_data(self, col: int, row: int):
         if isinstance(self._cipher_file, SimpleCipherFile):
