@@ -104,6 +104,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def table_view_double_click(self, index: QtCore.QModelIndex):
         try:
             self.model.try_edit(index.column(), index.row())
+        except KeyboardInterrupt:
+            pass
         except RuntimeError as e:
             QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '修改失败', str(e)).exec_()
 

@@ -67,6 +67,7 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
         self._cipher_file.hash_algorithm_sign = rsa.sign(
             self._cipher_file.sign_hash_algorithm.encode(self._cipher_file.encoding), prk,
             self._cipher_file.sign_hash_algorithm).hex()
+        self._edited = True
         pp_fp, _ = QtWidgets.QFileDialog().getSaveFileName(window, '保存证书文件', os.getcwd(),
                                                            '所有文件(*);;加密证书文件(*.pfx,*.p12,*.jks);;'
                                                            '二进制密钥文件(*.der,*.cer);;文本密钥文件(*.pem);;'
@@ -87,15 +88,21 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
 
     def build_crypt_algorithm(self):
         if isinstance(self._cipher_file, SimpleCipherFile):
-            rp = InputPasswordDialog().getpass('输入根密码').encode(self._cipher_file.encoding)
+            rp = InputPasswordDialog().getpass('输入根密码', verify=self._cipher_file.rph == '').encode(
+                self._cipher_file.encoding)
             if isinstance(self._cipher_file, CipherDesFile):
                 self._crypt_algorithm = DESCryptAlgorithm(rp, self._cipher_file.des_cfg)
             elif isinstance(self._cipher_file, CipherAesFile):
                 self._crypt_algorithm = AESCryptAlgorithm(rp, self._cipher_file.aes_cfg)
             else:
                 raise RuntimeError(f'未知的加密方式：{self._cipher_file.encrypt_algorithm}。')
-            if not bytes.fromhex(self._cipher_file.rph) == get_hash_algorithm(
+            if self._cipher_file.rph == '':
+                self._cipher_file.rph = get_hash_algorithm(
+                    self._cipher_file.hash_algorithm).hash(rp + bytes.fromhex(self._cipher_file.salt)).hex()
+                self._edited = True
+            elif not bytes.fromhex(self._cipher_file.rph) == get_hash_algorithm(
                     self._cipher_file.hash_algorithm).hash(rp + bytes.fromhex(self._cipher_file.salt)):
+                self._crypt_algorithm = None
                 raise RuntimeError('密码错误！')
         elif isinstance(self._cipher_file, PPCipherFile):
             filepath, _ = QtWidgets.QFileDialog.getOpenFileName(window, '选择包含密钥的文件', os.getcwd(),
@@ -238,18 +245,20 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
             elif col == 1:
                 item = self.item(row, 1)
                 if isinstance(self._cipher_file, CipherFile):
-                    value = bytes.fromhex(item.text())
-                    if isinstance(self._crypt_algorithm, DESCryptAlgorithm):
-                        value = self._crypt_algorithm.des_decrypt(value).rstrip(b'\0').decode(
-                            self._cipher_file.encoding)
-                    elif isinstance(self._crypt_algorithm, AESCryptAlgorithm):
-                        value = self._crypt_algorithm.aes_decrypt(value).rstrip(b'\0').decode(
-                            self._cipher_file.encoding)
-                    elif isinstance(self._crypt_algorithm, RSACryptAlgorithm):
-                        value = self._crypt_algorithm.rsa_decrypt(value).decode(self._cipher_file.encoding)
-                    else:
-                        return
-                    item.setText(value)
+                    value = item.text()
+                    if value:
+                        value = bytes.fromhex(value)
+                        if isinstance(self._crypt_algorithm, DESCryptAlgorithm):
+                            value = self._crypt_algorithm.des_decrypt(value).rstrip(b'\0').decode(
+                                self._cipher_file.encoding)
+                        elif isinstance(self._crypt_algorithm, AESCryptAlgorithm):
+                            value = self._crypt_algorithm.aes_decrypt(value).rstrip(b'\0').decode(
+                                self._cipher_file.encoding)
+                        elif isinstance(self._crypt_algorithm, RSACryptAlgorithm):
+                            value = self._crypt_algorithm.rsa_decrypt(value).decode(self._cipher_file.encoding)
+                        else:
+                            return
+                        item.setText(value)
                     item.setEditable(True)
             else:
                 raise RuntimeError('状态异常')
@@ -287,11 +296,8 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
         return key, value, sign
 
     def make_cipher_file(self):
-        try:
-            self._cipher_file = NewCipherFileDialog().create_file()
-            self.save_file()
-        except KeyboardInterrupt:
-            pass
+        self._cipher_file = NewCipherFileDialog().create_file()
+        self.save_file()
 
     def _edit_data(self, col: int, row: int):
         if isinstance(self._cipher_file, SimpleCipherFile):
