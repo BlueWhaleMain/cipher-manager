@@ -13,6 +13,7 @@ from cm.crypto.rsa.file import CipherRSAFile
 from cm.file import CipherFile
 from cm.hash import all_hash_algorithm
 from gui.common.env import report_with_exception
+from gui.common.error import InterruptError
 from gui.designer.new_cipher_file_dialog import Ui_NewCipherFileDialog
 
 es = []
@@ -134,9 +135,9 @@ class NewCipherFileDialog(QtWidgets.QDialog, Ui_NewCipherFileDialog):
                 return CipherRSAFile(encoding=self.encoding_combo_box.currentText(),
                                      sign_hash_algorithm=self.sign_hash_algorithm_combo_box.currentText())
             else:
-                raise RuntimeError('状态异常')
+                raise InterruptError('状态异常')
         else:
-            raise KeyboardInterrupt
+            raise InterruptError
 
     def show_simple_cipher_widget(self):
         self.hash_algorithm_label.show()
@@ -179,4 +180,4 @@ class NewCipherFileDialog(QtWidgets.QDialog, Ui_NewCipherFileDialog):
             self.sign_hash_algorithm_label.show()
             self.sign_hash_algorithm_combo_box.show()
         else:
-            raise RuntimeError('状态异常')
+            raise InterruptError('状态异常')

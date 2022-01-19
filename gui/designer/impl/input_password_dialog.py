@@ -3,6 +3,7 @@ import typing
 from PyQt5 import QtWidgets, QtCore
 
 from gui.common.env import report_with_exception
+from gui.common.error import InterruptError
 from gui.designer.input_password_dialog import Ui_InputPasswordDialog
 
 
@@ -24,7 +25,7 @@ class InputPasswordDialog(QtWidgets.QDialog, Ui_InputPasswordDialog):
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
         self.exec_()
         if self._result is None:
-            raise KeyboardInterrupt
+            raise InterruptError
         while verify:
             self.setWindowTitle('再次输入确认')
             result = self._result
@@ -32,7 +33,7 @@ class InputPasswordDialog(QtWidgets.QDialog, Ui_InputPasswordDialog):
             self.lineEdit.clear()
             self.exec_()
             if self._result is None:
-                raise KeyboardInterrupt
+                raise InterruptError
             elif self._result == result:
                 return result
             else:

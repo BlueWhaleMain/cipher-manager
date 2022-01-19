@@ -18,6 +18,6 @@ def main():
     logger_configurer.enable_console_handler(color=True)
     __logger.debug(f'PID:{os.getpid()}')
     app = QtWidgets.QApplication(sys.argv)
-    window = MainWindow()
+    window = MainWindow(app)
     window.show()
     sys.exit(app.exec_())
