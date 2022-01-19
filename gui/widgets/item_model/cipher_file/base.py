@@ -21,6 +21,7 @@ from cm.file import CipherFile
 from cm.hash import get_hash_algorithm
 from gui.common.env import report_with_exception, window
 from gui.common.error import InterruptError
+from gui.designer.impl.attribute_dialog import AttributeDialog
 from gui.designer.impl.input_password_dialog import InputPasswordDialog
 from gui.designer.impl.new_cipher_file_dialog import NewCipherFileDialog
 
@@ -199,6 +200,11 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
         if ok:
             with open(filepath, 'w') as f:
                 json.dump(self._cipher_file.dict(), f, indent=2, cls=CryptoEncoder)
+
+    def open_attribute_dialog(self):
+        if not self.has_file:
+            raise InterruptError
+        AttributeDialog().load_file(self._cipher_file)
 
     def refresh(self, reload: bool = False):
         if reload is True:

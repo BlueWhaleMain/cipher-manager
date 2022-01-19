@@ -29,6 +29,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.action_open.triggered.connect(self.open_file)
         self.action_save.triggered.connect(self.save_file)
         self.action_export.triggered.connect(self.export_file)
+        self.action_attribute.triggered.connect(self.file_attribute)
         self.model.refreshed.connect(self.refresh)
         self.table_view.doubleClicked.connect(self.table_view_double_click)
         self.table_view.action_remove.triggered.connect(self.remove_item)
@@ -96,3 +97,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     @report_with_exception
     def remove_item(self, _):
         self.model.remove(self.table_view.currentIndex().row())
+
+    @report_with_exception
+    def file_attribute(self, _):
+        self.model.open_attribute_dialog()
