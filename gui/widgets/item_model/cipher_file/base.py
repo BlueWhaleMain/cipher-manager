@@ -168,7 +168,6 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
             with open(filepath, 'rb') as f:
                 self._cipher_file = pickle.load(f)
                 self._filepath = filepath
-            self.build_crypt_algorithm()
             self.refresh(reload=True)
             return
         except pickle.PickleError as e:

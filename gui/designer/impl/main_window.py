@@ -36,6 +36,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         arguments = app.arguments()
         if len(arguments) > 1:
             self.load_file(arguments[1])
+        else:
+            self.refresh()
 
     @report_with_exception
     def dragEnterEvent(self, e: QtGui.QDragEnterEvent) -> None:
@@ -89,6 +91,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.setWindowTitle(f'{"*" if self.model.edited else ""}'
                             f'{f"{self.model.filepath} - " if self.model.filepath else ""}'
                             f'{self._name}')
+        if self.model.has_file:
+            self.action_attribute.setEnabled(True)
+            self.action_save.setEnabled(True)
+            self.action_export.setEnabled(True)
+        else:
+            self.action_attribute.setEnabled(False)
+            self.action_save.setEnabled(False)
+            self.action_export.setEnabled(False)
 
     @report_with_exception
     def table_view_double_click(self, index: QtCore.QModelIndex):
