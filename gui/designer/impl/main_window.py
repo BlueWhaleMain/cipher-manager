@@ -7,6 +7,7 @@ from gui.common import env
 from gui.common.env import report_with_exception
 from gui.common.error import OperationInterruptError
 from gui.designer.impl.encrypt_test_dialog import EncryptTestDialog
+from gui.designer.impl.random_password_dialog import RandomPasswordDialog
 from gui.designer.main_window import Ui_MainWindow
 from gui.widgets.item_model.cipher_file.base import CipherFileItemModel
 from gui.widgets.table_view.base import BaseTableView
@@ -34,6 +35,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.action_attribute.triggered.connect(self.file_attribute)
         self.action_encrypt_test.triggered.connect(self.encrypt_test)
         self.action_import.triggered.connect(self.import_file)
+        self.action_random_password.triggered.connect(self.random_password)
         self.model.refreshed.connect(self.refresh)
         self.table_view.doubleClicked.connect(self.table_view_double_click)
         self.table_view.action_remove.triggered.connect(self.remove_item)
@@ -129,3 +131,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     @report_with_exception
     def encrypt_test(self, _):
         EncryptTestDialog().run()
+
+    @report_with_exception
+    def random_password(self, _):
+        RandomPasswordDialog().exec_()

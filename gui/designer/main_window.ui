@@ -74,6 +74,7 @@
     </property>
     <addaction name="action_hash_tools"/>
     <addaction name="action_encrypt_test"/>
+    <addaction name="action_random_password"/>
    </widget>
    <addaction name="menu_file"/>
    <addaction name="menu_edit"/>
@@ -151,9 +152,15 @@
    <property name="text">
     <string>升序排序</string>
    </property>
+   <property name="statusTip">
+    <string>升序排序</string>
+   </property>
   </action>
   <action name="action_sort_desc">
    <property name="text">
+    <string>降序排序</string>
+   </property>
+   <property name="statusTip">
     <string>降序排序</string>
    </property>
   </action>
@@ -190,6 +197,14 @@
    </property>
    <property name="shortcut">
     <string>I</string>
+   </property>
+  </action>
+  <action name="action_random_password">
+   <property name="text">
+    <string>随机密码生成</string>
+   </property>
+   <property name="statusTip">
+    <string>随机密码生成</string>
    </property>
   </action>
  </widget>

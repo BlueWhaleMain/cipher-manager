@@ -18,6 +18,7 @@ class EncryptTestDialog(QtWidgets.QDialog, Ui_EncryptTestDialog):
         self.model = QtGui.QStandardItemModel()
         self.mapping_table_view.setModel(self.model)
         self.mapping_table_view.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self._task = None
 
     def load(self):
         self.model.clear()
@@ -40,7 +41,13 @@ class EncryptTestDialog(QtWidgets.QDialog, Ui_EncryptTestDialog):
                         for r in row:
                             r.setForeground(red_color)
                             r.setToolTip(str(e))
+        self._task = None
 
     def run(self):
-        threading.Timer(0, self.load).start()
+        self._task = threading.Timer(0, self.load)
+        self._task.start()
         self.exec_()
+
+    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        if self._task:
+            self._task.cancel()
