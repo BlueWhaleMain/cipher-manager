@@ -5,6 +5,8 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 
 from gui.common import env
 from gui.common.env import report_with_exception
+from gui.common.error import OperationInterruptError
+from gui.designer.impl.encrypt_test_dialog import EncryptTestDialog
 from gui.designer.main_window import Ui_MainWindow
 from gui.widgets.item_model.cipher_file.base import CipherFileItemModel
 from gui.widgets.table_view.base import BaseTableView
@@ -30,6 +32,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.action_save.triggered.connect(self.save_file)
         self.action_export.triggered.connect(self.export_file)
         self.action_attribute.triggered.connect(self.file_attribute)
+        self.action_encrypt_test.triggered.connect(self.encrypt_test)
+        self.action_import.triggered.connect(self.import_file)
         self.model.refreshed.connect(self.refresh)
         self.table_view.doubleClicked.connect(self.table_view_double_click)
         self.table_view.action_remove.triggered.connect(self.remove_item)
@@ -38,6 +42,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.load_file(arguments[1])
         else:
             self.refresh()
+        self.setStatusTip('就绪')
 
     @report_with_exception
     def dragEnterEvent(self, e: QtGui.QDragEnterEvent) -> None:
@@ -58,8 +63,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 QtWidgets.QMessageBox.Icon.Information, '退出', '有操作未保存',
                 QtWidgets.QMessageBox.Save | QtWidgets.QMessageBox.Close | QtWidgets.QMessageBox.Cancel).exec_()
             if result == QtWidgets.QMessageBox.Save:
-                self.model.save_file()
-                return
+                try:
+                    self.model.save_file()
+                    return
+                except OperationInterruptError:
+                    pass
             elif result == QtWidgets.QMessageBox.Close:
                 return
             e.ignore()
@@ -67,6 +75,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     @report_with_exception
     def new_file(self, _):
         self.model.make_cipher_file()
+
+    @report_with_exception
+    def import_file(self, _):
+        filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, '选择文件', os.getcwd(), '所有文件(*);;JSON文件(*.json)')
+        if filepath:
+            self.model.import_file(os.path.abspath(filepath))
 
     @report_with_exception
     def open_file(self, _):
@@ -111,3 +125,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     @report_with_exception
     def file_attribute(self, _):
         self.model.open_attribute_dialog()
+
+    @report_with_exception
+    def encrypt_test(self, _):
+        EncryptTestDialog().run()

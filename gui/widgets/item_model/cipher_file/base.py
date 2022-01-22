@@ -20,7 +20,7 @@ from cm.crypto.rsa.file import CipherRSAFile
 from cm.file import CipherFile
 from cm.hash import get_hash_algorithm
 from gui.common.env import report_with_exception, window
-from gui.common.error import InterruptError
+from gui.common.error import OperationInterruptError
 from gui.designer.impl.attribute_dialog import AttributeDialog
 from gui.designer.impl.input_password_dialog import InputPasswordDialog
 from gui.designer.impl.new_cipher_file_dialog import NewCipherFileDialog
@@ -51,13 +51,13 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
 
     def spawn_rsa_cert(self):
         if not isinstance(self._cipher_file, CipherRSAFile):
-            raise InterruptError('状态异常')
+            raise OperationInterruptError('状态异常')
         if self._cipher_file.hash_algorithm_sign:
-            raise InterruptError('该文件已经绑定了一个证书')
+            raise OperationInterruptError('该文件已经绑定了一个证书')
         pk = OpenSSL.crypto.PKey()
         kl, ok = QtWidgets.QInputDialog().getInt(window, '生成密钥对', '输入密钥长度（必须是2的倍数）：', 4096)
         if ok is False:
-            raise InterruptError
+            raise OperationInterruptError
         progress = QtWidgets.QProgressDialog(window)
         progress.setWindowTitle("请稍等")
         progress.setLabelText("正在生成密钥...")
@@ -75,11 +75,11 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
                                                            '二进制密钥文件(*.der,*.cer);;文本密钥文件(*.pem);;'
                                                            '私钥文件(*.key);;包含公钥的证书(*.crt)')
         if not pp_fp:
-            raise InterruptError
+            raise OperationInterruptError
         pp_pwd = None
         try:
             pp_pwd = InputPasswordDialog().getpass('输入证书文件密码：', verify=True).encode(self._cipher_file.encoding)
-        except InterruptError:
+        except OperationInterruptError:
             pass
         with open(pp_fp, 'wb') as pf:
             if pp_pwd:
@@ -97,7 +97,7 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
             elif isinstance(self._cipher_file, CipherAesFile):
                 self._crypt_algorithm = AESCryptAlgorithm(rp, self._cipher_file.aes_cfg)
             else:
-                raise InterruptError(f'未知的加密方式：{self._cipher_file.encrypt_algorithm}。')
+                raise OperationInterruptError(f'未知的加密方式：{self._cipher_file.encrypt_algorithm}。')
             if self._cipher_file.rph == '':
                 self._cipher_file.rph = get_hash_algorithm(
                     self._cipher_file.hash_algorithm).hash(rp + bytes.fromhex(self._cipher_file.salt)).hex()
@@ -105,7 +105,7 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
             elif not bytes.fromhex(self._cipher_file.rph) == get_hash_algorithm(
                     self._cipher_file.hash_algorithm).hash(rp + bytes.fromhex(self._cipher_file.salt)):
                 self._crypt_algorithm = None
-                raise InterruptError('密码错误！')
+                raise OperationInterruptError('密码错误！')
         elif isinstance(self._cipher_file, PPCipherFile):
             filepath, _ = QtWidgets.QFileDialog.getOpenFileName(window, '选择包含密钥的文件', os.getcwd(),
                                                                 '所有文件(*);;加密证书文件(*.pfx,*.p12,*.jks);;'
@@ -116,12 +116,12 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
             if not filepath:
                 filepath, puk, prk = self.spawn_rsa_cert()
             if not filepath:
-                raise InterruptError
+                raise OperationInterruptError
             if puk is None:
                 pp_pwd = None
                 try:
                     pp_pwd = InputPasswordDialog().getpass('输入证书文件密码', '没有密码点击取消').encode(self._cipher_file.encoding)
-                except InterruptError:
+                except OperationInterruptError:
                     pass
                 with open(filepath, 'rb') as f:
                     pk = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, f.read(), pp_pwd)
@@ -136,13 +136,13 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
             if isinstance(self._cipher_file, CipherRSAFile):
                 self._crypt_algorithm = RSACryptAlgorithm(self._cipher_file.sign_hash_algorithm, puk, prk)
             else:
-                raise InterruptError(f'未知的加密方式：{self._cipher_file.encrypt_algorithm}')
+                raise OperationInterruptError(f'未知的加密方式：{self._cipher_file.encrypt_algorithm}')
             if not self._crypt_algorithm.verify(self._cipher_file.sign_hash_algorithm.encode(),
                                                 bytes.fromhex(self._cipher_file.hash_algorithm_sign)):
                 self._crypt_algorithm = None
-                raise InterruptError('证书与密钥文件不符、文件损坏，或者遭到篡改。')
+                raise OperationInterruptError('证书与密钥文件不符、文件损坏，或者遭到篡改。')
         else:
-            raise InterruptError(f'未知格式的密钥文件{type(self._cipher_file).__name__}')
+            raise OperationInterruptError(f'未知格式的密钥文件{type(self._cipher_file).__name__}')
         self.refresh(reload=True)
 
     @property
@@ -157,9 +157,34 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
     def has_file(self) -> bool:
         return isinstance(self._cipher_file, CipherFile)
 
+    def import_file(self, file_data):
+        try:
+            self._cipher_file = CipherDesFile.parse_file(file_data)
+            self._edited = True
+            self._filepath = None
+            self.refresh(reload=True)
+            return
+        except ValueError:
+            pass
+        try:
+            self._cipher_file = CipherAesFile.parse_file(file_data)
+            self._edited = True
+            self._filepath = None
+            self.refresh(reload=True)
+            return
+        except ValueError:
+            pass
+        try:
+            self._cipher_file = CipherRSAFile.parse_file(file_data)
+            self._edited = True
+            self._filepath = None
+            self.refresh(reload=True)
+        except ValueError as e:
+            raise OperationInterruptError('文件格式异常', e)
+
     def load_file(self, filepath: str):
         if self.has_file and self.edited:
-            raise InterruptError
+            raise OperationInterruptError
         self._crypt_algorithm = None
         self._cipher_file = None
         self._filepath = None
@@ -171,21 +196,21 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
             self.refresh(reload=True)
             return
         except pickle.PickleError as e:
-            raise InterruptError(msg='文件格式异常', exc=e)
+            raise OperationInterruptError(msg='文件格式异常', exc=e)
         except BaseException:
             self.refresh()
             raise
 
     def save_file(self, filepath: str = None):
         if not self.has_file:
-            raise InterruptError('没有要保存的数据')
+            raise OperationInterruptError('没有要保存的数据')
         if not filepath:
             if not self._filepath:
                 self._filepath, _ = QtWidgets.QFileDialog.getSaveFileName(window, '保存密钥文件', os.getcwd(),
                                                                           '所有文件(*);;Pickle文件(*.pkl)')
             filepath = self._filepath
         if not filepath:
-            raise InterruptError
+            raise OperationInterruptError
         with open(filepath, 'wb') as f:
             pickle.dump(self._cipher_file, f, self._cipher_file_protocol)
             self._edited = False
@@ -193,16 +218,15 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
 
     def dump_file(self):
         if not self.has_file:
-            raise InterruptError
-        filepath, ok = QtWidgets.QFileDialog.getSaveFileName(window, '导出密钥文件', os.getcwd(),
-                                                             '所有文件(*);;JSON文件(*.json)')
-        if ok:
+            raise OperationInterruptError
+        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(window, '导出密钥文件', os.getcwd(), '所有文件(*);;JSON文件(*.json)')
+        if filepath:
             with open(filepath, 'w') as f:
                 json.dump(self._cipher_file.dict(), f, indent=2, cls=CryptoEncoder)
 
     def open_attribute_dialog(self):
         if not self.has_file:
-            raise InterruptError
+            raise OperationInterruptError
         AttributeDialog().load_file(self._cipher_file)
 
     def refresh(self, reload: bool = False):
@@ -275,7 +299,7 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
                         item.setText(value)
                     item.setEditable(True)
             else:
-                raise InterruptError('状态异常')
+                raise OperationInterruptError('状态异常')
         finally:
             self._edit_lock = False
 
@@ -295,23 +319,23 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
         elif isinstance(self._crypt_algorithm, AESCryptAlgorithm):
             value = self._crypt_algorithm.aes_encrypt(value).hex()
         else:
-            raise InterruptError('无法修改')
+            raise OperationInterruptError('无法修改')
         return value
 
     def _edit_pp_row(self, key: str, value: str) -> tuple[str, str, str]:
         value = value.encode(self._cipher_file.encoding)
         if isinstance(self._crypt_algorithm, RSACryptAlgorithm):
             if self._crypt_algorithm.readonly:
-                raise InterruptError('无法修改')
+                raise OperationInterruptError('无法修改')
             value = self._crypt_algorithm.rsa_encrypt(value).hex()
             sign = self._crypt_algorithm.sign((key + value).encode()).hex()
         else:
-            raise InterruptError('无法修改')
+            raise OperationInterruptError('无法修改')
         return key, value, sign
 
     def make_cipher_file(self):
         if self._cipher_file:
-            raise InterruptError
+            raise OperationInterruptError
         self._cipher_file = NewCipherFileDialog().create_file()
         self.save_file()
 
@@ -326,7 +350,7 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
                     value = self._edit_simple_value(item.text())
                     self._cipher_file.records[row].value = value
                 else:
-                    raise InterruptError('状态异常')
+                    raise OperationInterruptError('状态异常')
             else:
                 item = self.item(row, 1)
                 value = self._edit_simple_value(item.text())
@@ -341,7 +365,7 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
             else:
                 self._cipher_file.records.append(self._cipher_file.Record(key=key, value=value, sign=sign))
         else:
-            raise InterruptError('未知文件格式')
+            raise OperationInterruptError('未知文件格式')
 
     @report_with_exception
     def data_changed(self, index: QtCore.QModelIndex, _, __):
@@ -362,7 +386,7 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
         if isinstance(self._cipher_file, (SimpleCipherFile, PPCipherFile)):
             self._cipher_file.records.pop(row)
         else:
-            raise InterruptError('未知文件格式')
+            raise OperationInterruptError('未知文件格式')
         self.removeRow(row)
         self._edited = True
         self.refresh(reload=True)

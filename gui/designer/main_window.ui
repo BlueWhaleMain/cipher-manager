@@ -44,6 +44,7 @@
     <addaction name="action_new"/>
     <addaction name="action_open"/>
     <addaction name="action_save"/>
+    <addaction name="action_import"/>
     <addaction name="action_export"/>
     <addaction name="action_attribute"/>
     <addaction name="action_exit"/>
@@ -52,9 +53,32 @@
     <property name="title">
      <string>编辑</string>
     </property>
+    <widget class="QMenu" name="menu">
+     <property name="title">
+      <string>行操作</string>
+     </property>
+     <addaction name="action_sort_asc"/>
+     <addaction name="action_sort_desc"/>
+    </widget>
+    <addaction name="menu"/>
+   </widget>
+   <widget class="QMenu" name="menu_search">
+    <property name="title">
+     <string>搜索</string>
+    </property>
+    <addaction name="action_search"/>
+   </widget>
+   <widget class="QMenu" name="menu_tools">
+    <property name="title">
+     <string>工具</string>
+    </property>
+    <addaction name="action_hash_tools"/>
+    <addaction name="action_encrypt_test"/>
    </widget>
    <addaction name="menu_file"/>
    <addaction name="menu_edit"/>
+   <addaction name="menu_search"/>
+   <addaction name="menu_tools"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="action_new">
@@ -62,7 +86,7 @@
     <string>新建</string>
    </property>
    <property name="statusTip">
-    <string>新建</string>
+    <string>新建（N）</string>
    </property>
    <property name="shortcut">
     <string>N</string>
@@ -73,7 +97,7 @@
     <string>打开</string>
    </property>
    <property name="statusTip">
-    <string>打开</string>
+    <string>打开（O）</string>
    </property>
    <property name="shortcut">
     <string>O</string>
@@ -84,7 +108,7 @@
     <string>属性</string>
    </property>
    <property name="statusTip">
-    <string>属性</string>
+    <string>属性（A）</string>
    </property>
    <property name="shortcut">
     <string>A</string>
@@ -95,7 +119,7 @@
     <string>退出</string>
    </property>
    <property name="statusTip">
-    <string>退出</string>
+    <string>退出（X）</string>
    </property>
    <property name="shortcut">
     <string>X</string>
@@ -106,7 +130,7 @@
     <string>导出</string>
    </property>
    <property name="statusTip">
-    <string>导出</string>
+    <string>导出（E）</string>
    </property>
    <property name="shortcut">
     <string>E</string>
@@ -117,10 +141,55 @@
     <string>保存</string>
    </property>
    <property name="statusTip">
-    <string>保存</string>
+    <string>保存（Ctrl+S）</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="action_sort_asc">
+   <property name="text">
+    <string>升序排序</string>
+   </property>
+  </action>
+  <action name="action_sort_desc">
+   <property name="text">
+    <string>降序排序</string>
+   </property>
+  </action>
+  <action name="action_search">
+   <property name="text">
+    <string>查找</string>
+   </property>
+   <property name="statusTip">
+    <string>查找（Ctrl+F）</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+F</string>
+   </property>
+  </action>
+  <action name="action_hash_tools">
+   <property name="text">
+    <string>哈希工具</string>
+   </property>
+   <property name="statusTip">
+    <string>哈希工具</string>
+   </property>
+  </action>
+  <action name="action_encrypt_test">
+   <property name="text">
+    <string>PEM加密算法测试</string>
+   </property>
+   <property name="statusTip">
+    <string>加密算法测试</string>
+   </property>
+  </action>
+  <action name="action_import">
+   <property name="text">
+    <string>导入</string>
+   </property>
+   <property name="shortcut">
+    <string>I</string>
    </property>
   </action>
  </widget>

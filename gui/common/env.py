@@ -4,7 +4,7 @@ import typing
 
 from PyQt5 import QtWidgets
 
-from gui.common.error import InterruptError
+from gui.common.error import OperationInterruptError
 
 window: typing.Optional[QtWidgets.QMainWindow] = None
 __logger = logging.getLogger(__name__)
@@ -17,7 +17,7 @@ def report_with_exception(func):
             try:
                 func(*args, **kwargs)
                 break
-            except InterruptError as e:
+            except OperationInterruptError as e:
                 if e.msg and e.exc:
                     QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, e.msg, str(e.exc)).exec_()
                 elif e.exc:

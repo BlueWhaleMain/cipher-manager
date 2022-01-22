@@ -1,4 +1,4 @@
-class InterruptError(KeyboardInterrupt):
+class OperationInterruptError(KeyboardInterrupt):
     def __init__(self, msg: str = '', exc=None):
         self._msg: str = msg
         self._exc = exc
