@@ -3,3 +3,4 @@ pyDes
 pydantic
 pycryptodome
 pyopenssl
+rsa
