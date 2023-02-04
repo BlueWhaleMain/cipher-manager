@@ -62,7 +62,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def closeEvent(self, e: QtGui.QCloseEvent) -> None:
         if self.model.edited:
             result = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Icon.Information, '退出', '有操作未保存',
+                QtWidgets.QMessageBox.Icon.Information, '退出', '有操作未保存。',
                 QtWidgets.QMessageBox.Save | QtWidgets.QMessageBox.Close | QtWidgets.QMessageBox.Cancel).exec_()
             if result == QtWidgets.QMessageBox.Save:
                 try:
