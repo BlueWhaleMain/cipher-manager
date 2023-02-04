@@ -398,7 +398,7 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
                 self._cipher_file.records[row].sign = sign
             else:
                 self._cipher_file.records.append(self._cipher_file.Record(key=key, value=value, sign=sign))
-        else:
+        elif self._cipher_file:
             raise OperationInterruptError('未知文件格式')
 
     @report_with_exception
@@ -413,9 +413,14 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
             self._refresh(reload=True)
 
     def remove(self, row: int):
-        if isinstance(self._cipher_file, (SimpleCipherFile, PPCipherFile)):
-            self._cipher_file.records.pop(row)
-            self._edited = True
-        else:
+        if isinstance(self.__cipher_file, (SimpleCipherFile, PPCipherFile)):
+            try:
+                self._cipher_file.records.pop(row)
+                self._edited = True
+            except IndexError:
+                pass
+        elif self.__cipher_file:
             raise OperationInterruptError('未知文件格式')
+        else:
+            raise OperationInterruptError
         self._refresh(reload=True)
