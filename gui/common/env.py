@@ -19,14 +19,18 @@ def report_with_exception(func):
                 break
             except OperationInterruptError as e:
                 if e.msg and e.exc:
-                    QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, e.msg, str(e.exc)).exec_()
+                    QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', f'{e.msg}：\n{e.exc}。').exec_()
                 elif e.exc:
-                    QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Critical, type(e.exc).__name__, str(e.exc))
+                    QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Critical, '错误',
+                                          f'{type(e.exc).__name__}：\n{e.exc}。').exec_()
+                elif e.msg:
+                    QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information, '提示', e.msg + '。').exec_()
+                # 没有信息的异常仅用于打断执行流程
                 break
             except BaseException as e:
                 __logger.error(e, exc_info=True)
                 result = QtWidgets.QMessageBox(
-                    QtWidgets.QMessageBox.Icon.Critical, '致命异常', f'{type(e).__name__}\r\n{e}',
+                    QtWidgets.QMessageBox.Icon.Critical, '致命异常', f'{type(e).__name__}：\n{e}。',
                     QtWidgets.QMessageBox.Retry | QtWidgets.QMessageBox.Abort | QtWidgets.QMessageBox.Ignore,
                     window).exec_()
                 if result == QtWidgets.QMessageBox.Retry:
