@@ -424,3 +424,7 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
         else:
             raise OperationInterruptError
         self._refresh(reload=True)
+
+    def lock(self):
+        self.__crypt_algorithm = None
+        self._refresh(reload=True)

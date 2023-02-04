@@ -25,7 +25,7 @@
      <x>0</x>
      <y>0</y>
      <width>799</width>
-     <height>26</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_file">
@@ -76,9 +76,19 @@
     <addaction name="action_encrypt_test"/>
     <addaction name="action_random_password"/>
    </widget>
+   <widget class="QMenu" name="menu_view">
+    <property name="title">
+     <string>视图</string>
+    </property>
+    <addaction name="action_stay_on_top"/>
+    <addaction name="action_notes_mode"/>
+    <addaction name="separator"/>
+    <addaction name="action_auto_lock"/>
+   </widget>
    <addaction name="menu_file"/>
    <addaction name="menu_edit"/>
    <addaction name="menu_search"/>
+   <addaction name="menu_view"/>
    <addaction name="menu_tools"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
@@ -205,6 +215,45 @@
    </property>
    <property name="statusTip">
     <string>随机密码生成</string>
+   </property>
+  </action>
+  <action name="action_stay_on_top">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>总在最前</string>
+   </property>
+   <property name="statusTip">
+    <string>总在最前</string>
+   </property>
+  </action>
+  <action name="action_notes_mode">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>便签模式</string>
+   </property>
+   <property name="statusTip">
+    <string>总在最前，无边框</string>
+   </property>
+   <property name="shortcut">
+    <string>F12</string>
+   </property>
+  </action>
+  <action name="action_auto_lock">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>自动锁定</string>
+   </property>
+   <property name="statusTip">
+    <string>自动锁定</string>
    </property>
   </action>
  </widget>

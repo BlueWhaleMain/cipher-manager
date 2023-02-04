@@ -36,6 +36,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.action_encrypt_test.triggered.connect(self.encrypt_test)
         self.action_import.triggered.connect(self.import_file)
         self.action_random_password.triggered.connect(self.random_password)
+        self.action_stay_on_top.triggered.connect(self.stay_on_top)
+        self.action_notes_mode.triggered.connect(self.notes_mode)
         self.model.refreshed.connect(self.refresh)
         self.table_view.doubleClicked.connect(self.table_view_double_click)
         self.table_view.action_remove.triggered.connect(self.remove_item)
@@ -73,6 +75,23 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             elif result == QtWidgets.QMessageBox.Close:
                 return
             e.ignore()
+
+    @report_with_exception
+    def changeEvent(self, e: QtCore.QEvent) -> None:
+        if e.type() in (QtCore.QEvent.ActivationChange, QtCore.QEvent.WindowStateChange):
+            if not self.isActiveWindow() or self.isMinimized():
+                if self.action_auto_lock.isChecked():
+                    self.model.lock()
+
+    @report_with_exception
+    def hideEvent(self, e: QtGui.QHideEvent) -> None:
+        if self.action_auto_lock.isChecked():
+            self.model.lock()
+
+    def keyPressEvent(self, e: QtGui.QKeyEvent) -> None:
+        if e.key() == QtCore.Qt.Key_F12:
+            self.action_notes_mode.setChecked(False)
+            self.notes_mode(False)
 
     @report_with_exception
     def new_file(self, _):
@@ -135,3 +154,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     @report_with_exception
     def random_password(self, _):
         RandomPasswordDialog().exec_()
+
+    @report_with_exception
+    def stay_on_top(self, selected):
+        self.setWindowFlag(QtCore.Qt.WindowStaysOnTopHint, selected)
+        self.show()
+
+    @report_with_exception
+    def notes_mode(self, selected):
+        self.action_auto_lock.setChecked(not selected)
+        if not self.action_stay_on_top.isChecked():
+            self.setWindowFlag(QtCore.Qt.WindowStaysOnTopHint, selected)
+        self.setWindowFlag(QtCore.Qt.FramelessWindowHint, selected)
+        self.menubar.setVisible(not selected)
+        self.show()
