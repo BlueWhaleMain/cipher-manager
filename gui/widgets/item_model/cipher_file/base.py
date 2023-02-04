@@ -137,13 +137,16 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
                 self.__crypt_algorithm = None
                 raise OperationInterruptError('密码错误！')
         elif isinstance(self._cipher_file, PPCipherFile):
-            filepath, _ = QtWidgets.QFileDialog.getOpenFileName(window, '选择包含密钥的文件', os.getcwd(),
+            filepath, _ = QtWidgets.QFileDialog.getOpenFileName(window, '选择包含密钥的文件', os.path.dirname(self._filepath),
                                                                 '所有文件(*);;加密证书文件(*.pfx,*.p12,*.jks);;'
                                                                 '二进制密钥文件(*.der,*.cer);;文本密钥文件(*.pem);;'
                                                                 '私钥文件(*.key);;包含公钥的证书(*.crt)')
             puk = None
             prk = None
             if not filepath:
+                # 绑定过证书则不尝试生成新证书
+                if self._cipher_file.hash_algorithm_sign:
+                    raise OperationInterruptError
                 filepath, puk, prk = self._spawn_rsa_cert()
             if not filepath:
                 raise OperationInterruptError
@@ -268,7 +271,7 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
                     left, right = self._make_row()
                     left.setText(item.key)
                     right.setText(item.value)
-                    if isinstance(self._crypt_algorithm, RSACryptAlgorithm):
+                    if isinstance(self.__crypt_algorithm, RSACryptAlgorithm):
                         if not self._crypt_algorithm.verify((item.key + item.value).encode(self._cipher_file.encoding),
                                                             bytes.fromhex(item.sign)):
                             color_red = QtGui.QColor('red')
@@ -298,6 +301,12 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
             if col == 0:
                 if isinstance(self._crypt_algorithm, RSACryptAlgorithm):
                     if not self._crypt_algorithm.readonly:
+                        # 重新获得QStandardItem对象，规避C对象被回收的异常
+                        # 若问题已解决，请移除此行代码
+                        item = self.item(row, 0)
+                        # 在未提供解密方式的情况下尝试编辑名称框
+                        # RuntimeError: wrapped C/C++ object of type QStandardItem has been deleted
+                        # 可能是弹出对话框处理其他逻辑时，QStandardItem对象被回收
                         item.setEditable(True)
                     return
             elif col == 1:
@@ -328,7 +337,14 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
                         # RuntimeError: wrapped C/C++ object of type QStandardItem has been deleted
                         # 可能是弹出对话框处理其他逻辑时，QStandardItem对象被回收
                         item.setText(value)
-                    item.setEditable(True)
+                    if self._crypt_algorithm:
+                        # 重新获得QStandardItem对象，规避C对象被回收的异常
+                        # 若问题已解决，请移除此行代码
+                        item = self.item(row, 1)
+                        # 在密码框为空且未提供解密方式的情况下尝试编辑密码框
+                        # RuntimeError: wrapped C/C++ object of type QStandardItem has been deleted
+                        # 可能是弹出对话框处理其他逻辑时，QStandardItem对象被回收
+                        item.setEditable(True)
             else:
                 raise OperationInterruptError('状态异常')
         finally:
