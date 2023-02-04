@@ -6,6 +6,7 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 from gui.common import env
 from gui.common.env import report_with_exception
 from gui.common.error import OperationInterruptError
+from gui.designer.impl.about_form import AboutForm
 from gui.designer.impl.encrypt_test_dialog import EncryptTestDialog
 from gui.designer.impl.random_password_dialog import RandomPasswordDialog
 from gui.designer.main_window import Ui_MainWindow
@@ -28,6 +29,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.gridLayout.addWidget(self.table_view, 0, 0, 1, 1)
         self.model = CipherFileItemModel(self.table_view)
         self.table_view.setModel(self.model)
+        self._about_form: AboutForm = AboutForm()
         self.action_new.triggered.connect(self.new_file)
         self.action_open.triggered.connect(self.open_file)
         self.action_save.triggered.connect(self.save_file)
@@ -38,6 +40,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.action_random_password.triggered.connect(self.random_password)
         self.action_stay_on_top.triggered.connect(self.stay_on_top)
         self.action_notes_mode.triggered.connect(self.notes_mode)
+        self.action_about.triggered.connect(self.about)
         self.model.refreshed.connect(self.refresh)
         self.table_view.doubleClicked.connect(self.table_view_double_click)
         self.table_view.action_remove.triggered.connect(self.remove_item)
@@ -168,3 +171,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.setWindowFlag(QtCore.Qt.FramelessWindowHint, selected)
         self.menubar.setVisible(not selected)
         self.show()
+
+    @report_with_exception
+    def about(self, _):
+        self._about_form = AboutForm()
+        self._about_form.show()

@@ -39,7 +39,7 @@
      <string/>
     </property>
     <property name="title">
-     <string>文件</string>
+     <string>文件(&amp;F)</string>
     </property>
     <addaction name="action_new"/>
     <addaction name="action_open"/>
@@ -47,11 +47,12 @@
     <addaction name="action_import"/>
     <addaction name="action_export"/>
     <addaction name="action_attribute"/>
+    <addaction name="separator"/>
     <addaction name="action_exit"/>
    </widget>
    <widget class="QMenu" name="menu_edit">
     <property name="title">
-     <string>编辑</string>
+     <string>编辑(&amp;E)</string>
     </property>
     <widget class="QMenu" name="menu">
      <property name="title">
@@ -64,13 +65,13 @@
    </widget>
    <widget class="QMenu" name="menu_search">
     <property name="title">
-     <string>搜索</string>
+     <string>搜索(&amp;S)</string>
     </property>
     <addaction name="action_search"/>
    </widget>
    <widget class="QMenu" name="menu_tools">
     <property name="title">
-     <string>工具</string>
+     <string>工具(&amp;O)</string>
     </property>
     <addaction name="action_hash_tools"/>
     <addaction name="action_encrypt_test"/>
@@ -78,78 +79,76 @@
    </widget>
    <widget class="QMenu" name="menu_view">
     <property name="title">
-     <string>视图</string>
+     <string>视图(&amp;V)</string>
     </property>
     <addaction name="action_stay_on_top"/>
     <addaction name="action_notes_mode"/>
     <addaction name="separator"/>
     <addaction name="action_auto_lock"/>
    </widget>
+   <widget class="QMenu" name="menu_help">
+    <property name="title">
+     <string>?</string>
+    </property>
+    <addaction name="action_about"/>
+   </widget>
    <addaction name="menu_file"/>
    <addaction name="menu_edit"/>
    <addaction name="menu_search"/>
    <addaction name="menu_view"/>
    <addaction name="menu_tools"/>
+   <addaction name="menu_help"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="action_new">
    <property name="text">
-    <string>新建</string>
+    <string>新建(&amp;N)</string>
    </property>
    <property name="statusTip">
     <string>新建（N）</string>
    </property>
    <property name="shortcut">
-    <string>N</string>
+    <string>Ctrl+N</string>
    </property>
   </action>
   <action name="action_open">
    <property name="text">
-    <string>打开</string>
+    <string>打开(&amp;O)</string>
    </property>
    <property name="statusTip">
     <string>打开（O）</string>
    </property>
    <property name="shortcut">
-    <string>O</string>
+    <string>Ctrl+O</string>
    </property>
   </action>
   <action name="action_attribute">
    <property name="text">
-    <string>属性</string>
+    <string>属性(&amp;A)</string>
    </property>
    <property name="statusTip">
     <string>属性（A）</string>
    </property>
-   <property name="shortcut">
-    <string>A</string>
-   </property>
   </action>
   <action name="action_exit">
    <property name="text">
-    <string>退出</string>
+    <string>退出(&amp;X)</string>
    </property>
    <property name="statusTip">
     <string>退出（X）</string>
    </property>
-   <property name="shortcut">
-    <string>X</string>
-   </property>
   </action>
   <action name="action_export">
    <property name="text">
-    <string>导出</string>
+    <string>导出(&amp;E)</string>
    </property>
    <property name="statusTip">
     <string>导出（E）</string>
    </property>
-   <property name="shortcut">
-    <string>E</string>
-   </property>
   </action>
   <action name="action_save">
    <property name="text">
-    <string>保存</string>
+    <string>保存(&amp;S)</string>
    </property>
    <property name="statusTip">
     <string>保存（Ctrl+S）</string>
@@ -176,10 +175,10 @@
   </action>
   <action name="action_search">
    <property name="text">
-    <string>查找</string>
+    <string>查找(&amp;F)</string>
    </property>
    <property name="statusTip">
-    <string>查找（Ctrl+F）</string>
+    <string>查找（F）</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+F</string>
@@ -203,10 +202,10 @@
   </action>
   <action name="action_import">
    <property name="text">
-    <string>导入</string>
+    <string>导入(&amp;I)</string>
    </property>
-   <property name="shortcut">
-    <string>I</string>
+   <property name="statusTip">
+    <string>导入（I）</string>
    </property>
   </action>
   <action name="action_random_password">
@@ -254,6 +253,17 @@
    </property>
    <property name="statusTip">
     <string>自动锁定</string>
+   </property>
+  </action>
+  <action name="action_about">
+   <property name="text">
+    <string>关于 CipherMangerGUI</string>
+   </property>
+   <property name="statusTip">
+    <string>关于 CipherMangerGUI</string>
+   </property>
+   <property name="shortcut">
+    <string>F1</string>
    </property>
   </action>
  </widget>
