@@ -1,6 +1,6 @@
-psutil
-pyDes
-pydantic
-pycryptodome
-pyopenssl
-rsa
+psutil==5.9.4
+pyDes==2.0.1
+pydantic==1.10.4
+pycryptodome==3.17
+pyopenssl==23.0.0
+rsa==4.9
