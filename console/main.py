@@ -19,6 +19,7 @@ from cm.crypto.rsa.file import CipherRSAFile
 from cm.file import CipherFile
 from cm.hash import get_hash_algorithm
 from cm.hash.base import Sha512
+from cm.support.file import CipherFileSupport
 from console.base import Console
 
 ENCODING = 'UTF-8'
@@ -44,6 +45,7 @@ def main():
             pp_fp = console.get_input('输入证书文件路径：')
             pp_pwd = None
             try:
+                print(os.path.abspath(pp_fp))
                 pp_pwd = console.get_input('输入证书文件密码（没有输入Ctrl+Z）：', mask='*', v_callback=console.verify_input,
                                            v_args=('*',)).encode(cipher_file.encoding)
             except KeyboardInterrupt:
@@ -57,6 +59,7 @@ def main():
             pp_fp = console.get_input('输入证书文件路径：')
             pp_pwd = None
             try:
+                print(os.path.abspath(pp_fp))
                 pp_pwd = console.get_input('输入证书文件密码（没有输入Ctrl+Z）：', mask='*').encode(cipher_file.encoding)
             except KeyboardInterrupt:
                 pass
@@ -100,13 +103,15 @@ def main():
     else:
         cipher_path = console.get_input('输入密钥文件路径：')
     cipher_file = None
+    changed = False
     if os.path.exists(cipher_path):
         with open(cipher_path, 'rb') as f:
             cipher_file = pickle.load(f)
     else:
-        if console.choice('文件不存在，创建一个'):
-            chl = ('D', 'A', 'R', 'Q')
-            cho = chl[console.choice('类型（D=DES，A=AES，R=RSA，Q=退出）', chl)]
+        print(os.path.abspath(cipher_path))
+        while console.choice('文件不存在，创建一个'):
+            chl = ('D', 'A', 'R', 'I', 'Q')
+            cho = chl[console.choice('类型（D=DES，A=AES，R=RSA，I=导入，Q=退出）', chl)]
             if cho == 'D':
                 salt = random_bytes(32)
                 cipher_file = CipherDesFile(encoding=ENCODING, hash_algorithm=Sha512.__TYPE__, salt=salt.hex(),
@@ -119,7 +124,8 @@ def main():
                 del __root_pwd
                 with open(cipher_path, 'wb') as f:
                     pickle.dump(cipher_file, f)
-                print('DES文件成功创建。')
+                print(f'DES文件：{os.path.abspath(cipher_path)} - 成功创建。')
+                break
             elif cho == 'A':
                 salt = random_bytes(32)
                 cipher_file = CipherAesFile(encoding=ENCODING, hash_algorithm=Sha512.__TYPE__, salt=salt.hex(),
@@ -132,13 +138,26 @@ def main():
                 del __root_pwd
                 with open(cipher_path, 'wb') as f:
                     pickle.dump(cipher_file, f)
-                print('AES文件成功创建。')
+                print(f'AES文件：{os.path.abspath(cipher_path)} - 成功创建。')
+                break
             elif cho == 'R':
                 cipher_file = CipherRSAFile(encoding=ENCODING, sign_hash_algorithm=Sha512.__TYPE__)
                 crypt_algorithm = get_or_create_pp_crypt_algorithm(cipher_file)
                 with open(cipher_path, 'wb') as f:
                     pickle.dump(cipher_file, f)
-                print('RSA文件成功创建。')
+                print(f'RSA文件：{os.path.abspath(cipher_path)} - 成功创建。')
+                break
+            elif cho == 'I':
+                cipher_file, errors = CipherFileSupport.parse_file(console.get_input('输入导入文件路径：'))
+                if cipher_file:
+                    if console.choice(f'保存{cipher_file.encrypt_algorithm}文件：{os.path.abspath(cipher_path)}'):
+                        with open(cipher_path, 'wb') as f:
+                            pickle.dump(cipher_file, f)
+                        print(f'{cipher_file.encrypt_algorithm}文件：{os.path.abspath(cipher_path)} - 成功创建。')
+                    else:
+                        changed = True
+                    break
+                print('文件读取失败', Exception(*errors))
             elif cho == 'Q':
                 exit(0)
             else:
@@ -147,9 +166,9 @@ def main():
         else:
             exit(0)
     is_running = True
-    changed = False
     while is_running:
         try:
+            print(os.path.abspath(cipher_path))
             chl = ('A', 'L', 'G', 'P', 'D', 'W', 'E', 'Q')
             cho = chl[console.choice('操作（A=文件属性，L=密码列表，G=读取密码，P=添加密码，D=删除密码，W=保存密码，E=导出密码，Q=退出）', chl)]
             if cho == 'A':
@@ -270,7 +289,7 @@ def main():
                 __json_path = console.get_input('输入导出文件路径：')
                 with open(__json_path, 'w') as f:
                     json.dump(cipher_file.dict(), f, indent=2, cls=CryptoEncoder)
-                print('导出成功。')
+                print(f'{os.path.abspath(__json_path)} - 导出成功。')
             elif cho == 'Q':
                 is_running = False
             else:
