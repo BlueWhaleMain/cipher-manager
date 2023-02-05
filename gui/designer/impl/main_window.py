@@ -102,13 +102,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     @report_with_exception
     def import_file(self, _):
-        filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, '选择文件', os.getcwd(), '所有文件(*);;JSON文件(*.json)')
+        filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, '选择文件', self.model.current_dir,
+                                                            '所有文件(*);;JSON文件(*.json)')
         if filepath:
             self.model.import_file(os.path.abspath(filepath))
 
     @report_with_exception
     def open_file(self, _):
-        filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, '选择密钥文件', os.getcwd(), '所有文件(*);;Pickle文件(*.pkl)')
+        filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, '选择密钥文件', self.model.current_dir,
+                                                            '所有文件(*);;Pickle文件(*.pkl)')
         if filepath:
             self.load_file(filepath)
 

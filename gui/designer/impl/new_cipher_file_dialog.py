@@ -1,13 +1,11 @@
 import encodings
 
-import pyDes
-from Crypto.Cipher import AES
 from PyQt5 import QtWidgets
 
-from cm.crypto.aes.base import AesCfg, AESCryptAlgorithm
+from cm.crypto.aes.base import AesCfg, AESCryptAlgorithm, AESModeEnum
 from cm.crypto.aes.file import CipherAesFile
 from cm.crypto.base import random_bytes
-from cm.crypto.des.base import DesCfg, DESCryptAlgorithm
+from cm.crypto.des.base import DesCfg, DESCryptAlgorithm, DESModeEnum, DESPadModeEnum
 from cm.crypto.des.file import CipherDesFile
 from cm.crypto.rsa.file import CipherRSAFile
 from cm.file import CipherFile
@@ -62,8 +60,8 @@ class NewCipherFileDialog(QtWidgets.QDialog, Ui_NewCipherFileDialog):
         self.des_mode_combo_box = QtWidgets.QComboBox()
         self.des_mode_combo_box.setObjectName('des_mode_combo_box')
         self.des_mode_combo_box.setEditable(True)
-        self.des_mode_combo_box.addItem('ECB', pyDes.ECB)
-        self.des_mode_combo_box.addItem('CBC', pyDes.CBC)
+        self.des_mode_combo_box.addItem('ECB', DESModeEnum.ECB)
+        self.des_mode_combo_box.addItem('CBC', DESModeEnum.CBC)
         self.des_mode_combo_box.setCurrentIndex(1)
         self.des_pad_mode_label = QtWidgets.QLabel()
         self.des_pad_mode_label.setObjectName('des_pad_mode_label')
@@ -71,8 +69,8 @@ class NewCipherFileDialog(QtWidgets.QDialog, Ui_NewCipherFileDialog):
         self.des_pad_mode_combo_box = QtWidgets.QComboBox()
         self.des_pad_mode_combo_box.setObjectName('des_pad_mode_combo_box')
         self.des_pad_mode_combo_box.setEditable(True)
-        self.des_pad_mode_combo_box.addItem('PAD_NORMAL', pyDes.PAD_NORMAL)
-        self.des_pad_mode_combo_box.addItem('PAD_PKCS5', pyDes.PAD_PKCS5)
+        self.des_pad_mode_combo_box.addItem('NORMAL', DESPadModeEnum.NORMAL)
+        self.des_pad_mode_combo_box.addItem('PKCS5', DESPadModeEnum.PKCS5)
         self.des_pad_mode_combo_box.setCurrentIndex(1)
 
         self.cipher_grid_layout.addWidget(self.des_mode_label, 2, 0, 1, 1)
@@ -86,9 +84,9 @@ class NewCipherFileDialog(QtWidgets.QDialog, Ui_NewCipherFileDialog):
         self.aes_mode_combo_box = QtWidgets.QComboBox()
         self.aes_mode_combo_box.setObjectName('aes_mode_combo_box')
         self.aes_mode_combo_box.setEditable(True)
-        self.aes_mode_combo_box.addItem('MODE_CBC', AES.MODE_CBC)
-        self.aes_mode_combo_box.addItem('MODE_CFB', AES.MODE_CFB)
-        self.aes_mode_combo_box.addItem('MODE_OFB', AES.MODE_OFB)
+        self.aes_mode_combo_box.addItem('CBC', AESModeEnum.CBC)
+        self.aes_mode_combo_box.addItem('CFB', AESModeEnum.CFB)
+        self.aes_mode_combo_box.addItem('OFB', AESModeEnum.OFB)
         self.aes_mode_combo_box.setCurrentIndex(0)
 
         self.cipher_grid_layout.addWidget(self.aes_mode_label, 2, 0, 1, 1)

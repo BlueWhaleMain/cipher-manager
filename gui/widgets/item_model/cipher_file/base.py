@@ -19,6 +19,7 @@ from cm.crypto.rsa.base import RSACryptAlgorithm
 from cm.crypto.rsa.file import CipherRSAFile
 from cm.file import CipherFile
 from cm.hash import get_hash_algorithm
+from cm.support.file import CipherFileSupport
 from gui.common.env import report_with_exception, window
 from gui.common.error import OperationInterruptError
 from gui.designer.impl.attribute_dialog import AttributeDialog
@@ -74,6 +75,12 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
                 raise OperationInterruptError('构建加密对象失败，密钥记录可能已损坏', e)
         return self.__crypt_algorithm
 
+    @property
+    def current_dir(self) -> str:
+        if self._filepath:
+            return os.path.dirname(self._filepath)
+        return os.getcwd()
+
     @classmethod
     def _spawn_pk(cls, pk: OpenSSL.crypto.PKey, _type, kl, progress: QtWidgets.QProgressDialog):
         pk.generate_key(_type, kl)
@@ -100,7 +107,7 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
             self._cipher_file.sign_hash_algorithm.encode(self._cipher_file.encoding), prk,
             self._cipher_file.sign_hash_algorithm).hex()
         self._edited = True
-        pp_fp, _ = QtWidgets.QFileDialog().getSaveFileName(window, '保存证书文件', os.getcwd(),
+        pp_fp, _ = QtWidgets.QFileDialog().getSaveFileName(window, '保存证书文件', self.current_dir,
                                                            '所有文件(*);;加密证书文件(*.pfx,*.p12,*.jks);;'
                                                            '二进制密钥文件(*.der,*.cer);;文本密钥文件(*.pem);;'
                                                            '私钥文件(*.key);;包含公钥的证书(*.crt)')
@@ -137,7 +144,7 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
                 self.__crypt_algorithm = None
                 raise OperationInterruptError('密码错误！')
         elif isinstance(self._cipher_file, PPCipherFile):
-            filepath, _ = QtWidgets.QFileDialog.getOpenFileName(window, '选择包含密钥的文件', os.path.dirname(self._filepath),
+            filepath, _ = QtWidgets.QFileDialog.getOpenFileName(window, '选择包含密钥的文件', self.current_dir,
                                                                 '所有文件(*);;加密证书文件(*.pfx,*.p12,*.jks);;'
                                                                 '二进制密钥文件(*.der,*.cer);;文本密钥文件(*.pem);;'
                                                                 '私钥文件(*.key);;包含公钥的证书(*.crt)')
@@ -191,20 +198,7 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
         return bool(self.__cipher_file)
 
     def import_file(self, file_data):
-        cipher_file = None
-        errors = []
-        try:
-            cipher_file = CipherDesFile.parse_file(file_data)
-        except BaseException as e:
-            errors.append(e)
-        try:
-            cipher_file = CipherAesFile.parse_file(file_data)
-        except BaseException as e:
-            errors.append(e)
-        try:
-            cipher_file = CipherRSAFile.parse_file(file_data)
-        except BaseException as e:
-            errors.append(e)
+        cipher_file, errors = CipherFileSupport.parse_file(file_data)
         if not cipher_file:
             raise OperationInterruptError('文件读取失败', Exception(*errors))
         self._cipher_file = cipher_file
@@ -233,7 +227,7 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
                 # 没有保存的路径属于新文件
                 self._edited = True
                 self._refresh()
-                self._filepath, _ = QtWidgets.QFileDialog.getSaveFileName(window, '保存密钥文件', os.getcwd(),
+                self._filepath, _ = QtWidgets.QFileDialog.getSaveFileName(window, '保存密钥文件', self.current_dir,
                                                                           '所有文件(*);;Pickle文件(*.pkl)')
             filepath = self._filepath
         if not filepath:
@@ -246,7 +240,8 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
     def dump_file(self):
         if not self.__cipher_file:
             raise OperationInterruptError
-        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(window, '导出密钥文件', os.getcwd(), '所有文件(*);;JSON文件(*.json)')
+        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(window, '导出密钥文件', self.current_dir,
+                                                            '所有文件(*);;JSON文件(*.json)')
         if filepath:
             with open(filepath, 'w') as f:
                 json.dump(self._cipher_file.dict(), f, indent=2, cls=CryptoEncoder)

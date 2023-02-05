@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>AttributeDialog</class>
- <widget class="QDialog" name="AttributeDialog">
+ <class>attribute_dialog</class>
+ <widget class="QDialog" name="attribute_dialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,14 +11,14 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>属性</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout">
+  <layout class="QGridLayout" name="grid_layout">
    <item row="0" column="0">
     <widget class="QTreeView" name="attribute_tree_view"/>
    </item>
    <item row="1" column="0">
-    <widget class="QDialogButtonBox" name="buttonBox">
+    <widget class="QDialogButtonBox" name="button_box">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
@@ -32,9 +32,9 @@
  <resources/>
  <connections>
   <connection>
-   <sender>buttonBox</sender>
+   <sender>button_box</sender>
    <signal>accepted()</signal>
-   <receiver>AttributeDialog</receiver>
+   <receiver>attribute_dialog</receiver>
    <slot>close()</slot>
    <hints>
     <hint type="sourcelabel">
