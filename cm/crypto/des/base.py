@@ -4,14 +4,27 @@ import pyDes
 import pydantic
 
 from cm.crypto.base import CryptAlgorithm, random_bytes, fixed_bytes
+from common.enum import DescriptionIntEnum
+
+
+class DESModeEnum(DescriptionIntEnum):
+    """ DES模式枚举 """
+    ECB = pyDes.ECB, 'ECB'
+    CBC = pyDes.CBC, 'CBC'
+
+
+class DESPadModeEnum(DescriptionIntEnum):
+    """ DES PAD模式枚举 """
+    NORMAL = pyDes.PAD_NORMAL, 'PAD_NORMAL'
+    PKCS5 = pyDes.PAD_PKCS5, 'PAD_PKCS5'
 
 
 class DesCfg(pydantic.BaseModel):
     """ DES配置 """
-    mode: int = pyDes.ECB
+    mode: DESModeEnum = DESModeEnum.ECB
     IV: typing.Optional[bytes] = None
     pad: typing.Optional[bytes] = None
-    padmode: int = pyDes.PAD_NORMAL
+    padmode: DESPadModeEnum = DESPadModeEnum.NORMAL
 
     @classmethod
     def from_dict(cls, d: dict):
