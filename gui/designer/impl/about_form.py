@@ -15,5 +15,5 @@ class AboutForm(QtWidgets.QWidget, Ui_about_form):
                 self.license_plain_text_edit.setPlainText(f.read())
         except FileNotFoundError:
             raise SystemExit('No License')
-        except BaseException as e:
+        except Exception as e:
             raise SystemExit('No License', e)

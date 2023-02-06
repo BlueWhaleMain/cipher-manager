@@ -10,7 +10,7 @@ class CipherFileSupport:
     """ 密钥文件支持 """
 
     @classmethod
-    def parse_file(cls, filepath) -> tuple[typing.Optional[CipherFile], list[BaseException]]:
+    def parse_file(cls, filepath) -> tuple[typing.Optional[CipherFile], list[Exception]]:
         """
         尝试解析文件
         :param filepath: 序列化的文件（例如JSON）
@@ -20,14 +20,14 @@ class CipherFileSupport:
         errors = []
         try:
             cipher_file = CipherDesFile.parse_file(filepath)
-        except BaseException as e:
+        except Exception as e:
             errors.append(e)
         try:
             cipher_file = CipherAesFile.parse_file(filepath)
-        except BaseException as e:
+        except Exception as e:
             errors.append(e)
         try:
             cipher_file = CipherRSAFile.parse_file(filepath)
-        except BaseException as e:
+        except Exception as e:
             errors.append(e)
         return cipher_file, errors

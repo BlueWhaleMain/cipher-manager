@@ -70,7 +70,7 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
                 self._build_crypt_algorithm()
             except OperationInterruptError:
                 raise
-            except BaseException as e:
+            except Exception as e:
                 self._cipher_file = None
                 raise OperationInterruptError('构建加密对象失败，密钥记录可能已损坏', e)
         return self.__crypt_algorithm
@@ -163,8 +163,11 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
                     pp_pwd = InputPasswordDialog().getpass('输入证书文件密码', '没有密码点击取消').encode(self._cipher_file.encoding)
                 except OperationInterruptError:
                     pass
-                with open(filepath, 'rb') as f:
-                    pk = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, f.read(), pp_pwd)
+                try:
+                    with open(filepath, 'rb') as f:
+                        pk = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, f.read(), pp_pwd)
+                except Exception as e:
+                    raise OperationInterruptError('私钥文件加载失败', e)
                 puk = rsa.PublicKey.load_pkcs1_openssl_pem(
                     OpenSSL.crypto.dump_publickey(OpenSSL.crypto.FILETYPE_PEM, pk))
                 prk = None
@@ -214,8 +217,8 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
             self._refresh()
             return
         except pickle.PickleError as e:
-            raise OperationInterruptError(msg='文件格式异常', exc=e)
-        except BaseException:
+            raise OperationInterruptError('文件格式异常', e)
+        except Exception:
             self._refresh()
             raise
 
