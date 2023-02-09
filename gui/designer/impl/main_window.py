@@ -9,6 +9,7 @@ from gui.common.error import OperationInterruptError
 from gui.designer.impl.about_form import AboutForm
 from gui.designer.impl.encrypt_test_dialog import EncryptTestDialog
 from gui.designer.impl.random_password_dialog import RandomPasswordDialog
+from gui.designer.impl.text_show_dialog import TextShowDialog
 from gui.designer.main_window import Ui_MainWindow
 from gui.widgets.item_model.cipher_file.base import CipherFileItemModel
 from gui.widgets.table_view.base import BaseTableView
@@ -43,6 +44,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.action_about.triggered.connect(self.about)
         self.model.refreshed.connect(self.refresh)
         self.table_view.doubleClicked.connect(self.table_view_double_click)
+        self.table_view.action_view.triggered.connect(self.view_item)
+        self.table_view.action_generate.triggered.connect(self.generate_item)
         self.table_view.action_remove.triggered.connect(self.remove_item)
         arguments = app.arguments()
         if len(arguments) > 1:
@@ -139,10 +142,25 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.action_attribute.setEnabled(False)
             self.action_save.setEnabled(False)
             self.action_export.setEnabled(False)
+        self.table_view.action_remove.setEnabled(self.model.rowCount() > 1)
 
     @report_with_exception
     def table_view_double_click(self, index: QtCore.QModelIndex):
         self.model.try_edit(index.column(), index.row())
+
+    @report_with_exception
+    def view_item(self, _):
+        d = TextShowDialog()
+        d.setWindowTitle(self.table_view.action_view.text())
+        d.plain_text_edit.setPlainText(self.model.get(self.table_view.currentIndex()))
+        d.exec_()
+
+    @report_with_exception
+    def generate_item(self, _):
+        index = self.table_view.currentIndex()
+        d = RandomPasswordDialog()
+        d.exec_()
+        self.model.set(index, d.result_plain_text_edit.toPlainText())
 
     @report_with_exception
     def remove_item(self, _):

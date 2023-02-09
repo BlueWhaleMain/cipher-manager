@@ -426,6 +426,13 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
         finally:
             self._refresh(reload=True)
 
+    def get(self, index: QtCore.QModelIndex) -> str:
+        return self.item(index.row(), index.column()).text()
+
+    def set(self, index: QtCore.QModelIndex, val: str) -> None:
+        self.try_edit(index.column(), index.row())
+        self.item(index.row(), index.column()).setText(val)
+
     def remove(self, row: int):
         if isinstance(self.__cipher_file, (SimpleCipherFile, PPCipherFile)):
             try:

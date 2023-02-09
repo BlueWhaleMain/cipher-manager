@@ -9,7 +9,16 @@ class BaseTableView(QtWidgets.QTableView):
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.context_menu = QtWidgets.QMenu(self)
-        self.action_remove = QtWidgets.QAction('删除')
+        _translate = QtCore.QCoreApplication.translate
+        self.action_view = QtWidgets.QAction(self)
+        self.action_view.setText(_translate('BaseTableView', '查看'))
+        self.context_menu.addAction(self.action_view)
+        self.action_generate = QtWidgets.QAction(self)
+        self.action_generate.setText(_translate('BaseTableView', '生成'))
+        self.context_menu.addAction(self.action_generate)
+        self.context_menu.addSeparator()
+        self.action_remove = QtWidgets.QAction(self)
+        self.action_remove.setText(_translate('BaseTableView', '删除'))
         self.context_menu.addAction(self.action_remove)
         self.customContextMenuRequested.connect(self.create_context_menu)
 
