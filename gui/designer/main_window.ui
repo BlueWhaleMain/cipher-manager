@@ -44,6 +44,9 @@
     <addaction name="action_new"/>
     <addaction name="action_open"/>
     <addaction name="action_save"/>
+    <addaction name="action_save_new"/>
+    <addaction name="action_ren"/>
+    <addaction name="separator"/>
     <addaction name="action_import"/>
     <addaction name="action_export"/>
     <addaction name="action_attribute"/>
@@ -264,6 +267,16 @@
    </property>
    <property name="shortcut">
     <string>F1</string>
+   </property>
+  </action>
+  <action name="action_ren">
+   <property name="text">
+    <string>重命名/移动</string>
+   </property>
+  </action>
+  <action name="action_save_new">
+   <property name="text">
+    <string>另存为</string>
    </property>
   </action>
  </widget>

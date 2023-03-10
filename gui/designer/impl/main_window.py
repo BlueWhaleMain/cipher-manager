@@ -39,6 +39,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.action_encrypt_test.triggered.connect(self.encrypt_test)
         self.action_import.triggered.connect(self.import_file)
         self.action_random_password.triggered.connect(self.random_password)
+        self.action_ren.triggered.connect(self.ren)
+        self.action_save_new.triggered.connect(self.save_new)
         self.action_stay_on_top.triggered.connect(self.stay_on_top)
         self.action_notes_mode.triggered.connect(self.notes_mode)
         self.action_about.triggered.connect(self.about)
@@ -147,10 +149,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if self.model.has_file:
             self.action_attribute.setEnabled(True)
             self.action_save.setEnabled(self.model.edited)
+            self.action_ren.setEnabled(True)
+            self.action_save_new.setEnabled(True)
             self.action_export.setEnabled(True)
         else:
             self.action_attribute.setEnabled(False)
             self.action_save.setEnabled(False)
+            self.action_ren.setEnabled(False)
+            self.action_save_new.setEnabled(False)
             self.action_export.setEnabled(False)
         self.table_view.action_remove.setEnabled(self.model.rowCount() > 1)
 
@@ -187,6 +193,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     @report_with_exception
     def random_password(self, _):
         RandomPasswordDialog().exec_()
+
+    @report_with_exception
+    def ren(self, _):
+        self.model.move_file()
+
+    @report_with_exception
+    def save_new(self, _):
+        self.model.save_new_file()
 
     @report_with_exception
     def stay_on_top(self, selected):

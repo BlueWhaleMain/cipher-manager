@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import pickle
+import shutil
 import threading
 import typing
 
@@ -241,6 +242,32 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
         with open(filepath, 'wb') as f:
             pickle.dump(self._cipher_file, f, self._cipher_file_protocol)
             self._edited = False
+        self._refresh(reload=True)
+
+    def move_file(self):
+        if not self.__cipher_file:
+            raise OperationInterruptError('文件不可用，无法移动')
+        if not self._filepath:
+            raise OperationInterruptError('文件未保存，无法移动')
+        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(window, '重命名/移动密钥文件', self.current_dir,
+                                                            '所有文件(*);;Pickle文件(*.pkl)')
+        if not filepath:
+            raise OperationInterruptError
+        shutil.move(self._filepath, filepath)
+        self._filepath = filepath
+        self._refresh()
+
+    def save_new_file(self):
+        if not self.__cipher_file:
+            raise OperationInterruptError('没有要保存的数据')
+        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(window, '另存密钥文件', self.current_dir,
+                                                            '所有文件(*);;Pickle文件(*.pkl)')
+        if not filepath:
+            raise OperationInterruptError
+        with open(filepath, 'wb') as f:
+            pickle.dump(self._cipher_file, f, self._cipher_file_protocol)
+            self._edited = False
+        self._filepath = filepath
         self._refresh(reload=True)
 
     def dump_file(self):
