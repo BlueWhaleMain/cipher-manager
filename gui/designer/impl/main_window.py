@@ -82,6 +82,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             elif result == QtWidgets.QMessageBox.Close:
                 return
             e.ignore()
+        if self._about_form:
+            self._about_form.close()
 
     @report_with_exception
     def changeEvent(self, e: QtCore.QEvent) -> None:
