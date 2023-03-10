@@ -4,6 +4,7 @@ import typing
 import OpenSSL.crypto
 from PyQt5 import QtWidgets, QtGui
 
+from gui.common.env import report_with_exception
 from gui.designer.encrypt_test_dialog import Ui_EncryptTestDialog
 from gui.widgets.item.readonly import ReadOnlyItem
 
@@ -52,6 +53,7 @@ class EncryptTestDialog(QtWidgets.QDialog, Ui_EncryptTestDialog):
         self._task.start()
         self.exec_()
 
+    @report_with_exception
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         if self._task:
             self._task.cancel()

@@ -86,7 +86,6 @@ class RandomPasswordDialog(QtWidgets.QDialog, Ui_RandomPasswordDialog):
                 raise OperationInterruptError('文件格式异常', e)
             self.apply_configure()
 
-    @report_with_exception
     def apply_configure(self):
         self.length_spin_box.setMinimum(self._configure.pwd_mini_len)
         self.length_spin_box.setValue(self._configure.pwd_mini_len)
@@ -130,6 +129,7 @@ class RandomPasswordDialog(QtWidgets.QDialog, Ui_RandomPasswordDialog):
             self._spawn_thread.start()
             self._spawn_thread.returned.connect(self.show_spawn)
 
+    @report_with_exception
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         if isinstance(self._spawn_thread, SpawnThread):
             self._spawn_thread.quit()

@@ -107,6 +107,7 @@ class NewCipherFileDialog(QtWidgets.QDialog, Ui_NewCipherFileDialog):
         self.cipher_type_list_widget.itemSelectionChanged.connect(self.selection_changed)
         self.cipher_type_list_widget.setCurrentRow(0)
 
+    @report_with_exception
     def accept(self) -> None:
         self._ok = True
         self.close()

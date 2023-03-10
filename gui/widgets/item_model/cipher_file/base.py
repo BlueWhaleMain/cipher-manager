@@ -212,15 +212,18 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
             raise OperationInterruptError('有操作未保存')
         try:
             with open(filepath, 'rb') as f:
-                self._cipher_file = pickle.load(f)
+                try:
+                    self._cipher_file = pickle.load(f)
+                except Exception as e:
+                    raise OperationInterruptError('文件格式异常', e)
                 self._filepath = filepath
             self._refresh()
             return
-        except pickle.PickleError as e:
-            raise OperationInterruptError('文件格式异常', e)
-        except Exception:
-            self._refresh()
+        except OperationInterruptError:
             raise
+        except Exception as e:
+            self._refresh()
+            raise OperationInterruptError('文件读取失败', e)
 
     def save_file(self, filepath: str = None):
         if not self.__cipher_file:

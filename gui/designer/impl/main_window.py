@@ -56,15 +56,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     @report_with_exception
     def dragEnterEvent(self, e: QtGui.QDragEnterEvent) -> None:
-        if e.mimeData().hasText():
+        if e.mimeData().urls():
             e.accept()
         else:
             e.ignore()
 
     @report_with_exception
     def dropEvent(self, e: QtGui.QDropEvent) -> None:
-        filepath = e.mimeData().text().split('\n')[0].lstrip('file:///')
-        self.load_file(filepath)
+        urls = e.mimeData().urls()
+        if urls:
+            self._load_file(urls[0].toLocalFile())
 
     @report_with_exception
     def closeEvent(self, e: QtGui.QCloseEvent) -> None:
@@ -94,10 +95,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if self.action_auto_lock.isChecked():
             self.model.lock()
 
+    @report_with_exception
     def keyPressEvent(self, e: QtGui.QKeyEvent) -> None:
         if e.key() == QtCore.Qt.Key_F12:
             self.action_notes_mode.setChecked(False)
-            self.notes_mode(False)
+            self._notes_mode(False)
 
     @report_with_exception
     def new_file(self, _):
@@ -127,16 +129,22 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     @report_with_exception
     def load_file(self, filepath: str):
+        self._load_file(filepath)
+
+    def _load_file(self, filepath: str):
         self.model.load_file(os.path.abspath(filepath))
 
     @report_with_exception
     def refresh(self):
+        self._refresh()
+
+    def _refresh(self):
         self.setWindowTitle(f'{"*" if self.model.edited else ""}'
                             f'{f"{self.model.filepath} - " if self.model.filepath else ""}'
                             f'{self._name}')
         if self.model.has_file:
             self.action_attribute.setEnabled(True)
-            self.action_save.setEnabled(True)
+            self.action_save.setEnabled(self.model.edited)
             self.action_export.setEnabled(True)
         else:
             self.action_attribute.setEnabled(False)
@@ -185,6 +193,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     @report_with_exception
     def notes_mode(self, selected):
+        self._notes_mode(selected)
+
+    def _notes_mode(self, selected):
         self.action_auto_lock.setChecked(not selected)
         if not self.action_stay_on_top.isChecked():
             self.setWindowFlag(QtCore.Qt.WindowStaysOnTopHint, selected)
