@@ -22,12 +22,14 @@ def report_with_exception(func):
                 break
             except OperationInterruptError as e:
                 if e.msg and e.exc:
-                    QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', f'{e.msg}：\n{e.exc}。').exec_()
+                    QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', f'{e.msg}：\n{e.exc}。',
+                                          parent=window).exec_()
                 elif e.exc:
                     QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Critical, '错误',
-                                          f'{type(e.exc).__name__}：\n{e.exc}。').exec_()
+                                          f'{type(e.exc).__name__}：\n{e.exc}。', parent=window).exec_()
                 elif e.msg:
-                    QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information, '提示', e.msg + '。').exec_()
+                    QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information, '提示', e.msg + '。',
+                                          parent=window).exec_()
                 # 没有信息的异常仅用于打断执行流程
                 break
             except (SystemExit, KeyboardInterrupt) as e:

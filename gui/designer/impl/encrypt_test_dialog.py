@@ -19,8 +19,8 @@ def test_tuple() -> typing.Generator[tuple[str, str, str], None, None]:
 
 
 class EncryptTestDialog(QtWidgets.QDialog, Ui_EncryptTestDialog):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.setupUi(self)
         self.model = QtGui.QStandardItemModel()
         self.mapping_table_view.setModel(self.model)
@@ -57,3 +57,4 @@ class EncryptTestDialog(QtWidgets.QDialog, Ui_EncryptTestDialog):
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         if self._task:
             self._task.cancel()
+        super().closeEvent(a0)

@@ -23,6 +23,7 @@ def main():
     try:
         app = QtWidgets.QApplication(sys.argv)
         window = MainWindow(app)
+        env.window = window
         window.show()
         code = app.exec_()
     except (SystemExit, KeyboardInterrupt) as e:

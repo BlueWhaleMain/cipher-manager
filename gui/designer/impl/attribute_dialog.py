@@ -12,8 +12,8 @@ from gui.widgets.item.readonly import ReadOnlyItem
 
 
 class AttributeDialog(QtWidgets.QDialog, Ui_attribute_dialog):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.setupUi(self)
         self.model = QtGui.QStandardItemModel()
         self.model.setHorizontalHeaderLabels(['名称', '值'])

@@ -1,6 +1,6 @@
 import typing
 
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets
 
 from gui.common.env import report_with_exception
 from gui.common.error import OperationInterruptError
@@ -8,8 +8,8 @@ from gui.designer.input_password_dialog import Ui_InputPasswordDialog
 
 
 class InputPasswordDialog(QtWidgets.QDialog, Ui_InputPasswordDialog):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.setupUi(self)
         self._result: typing.Optional[str] = None
 
@@ -17,12 +17,12 @@ class InputPasswordDialog(QtWidgets.QDialog, Ui_InputPasswordDialog):
     def accept(self) -> None:
         self._result = self.lineEdit.text()
         self.close()
+        super().accept()
 
     def getpass(self, text: str = '输入密码', title: str = None, verify: bool = False) -> str:
         if title:
             self.setWindowTitle(title)
         self.lineEdit.setPlaceholderText(text)
-        self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
         self.exec_()
         if self._result is None:
             raise OperationInterruptError

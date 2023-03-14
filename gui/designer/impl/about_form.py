@@ -4,11 +4,11 @@ from gui.common.env import report_with_exception
 from gui.designer.about_form import Ui_about_form
 
 
-class AboutForm(QtWidgets.QWidget, Ui_about_form):
+class AboutForm(QtWidgets.QDialog, Ui_about_form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
-        self.setWindowFlag(QtCore.Qt.WindowMinMaxButtonsHint, False)
+        self.setWindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.Dialog)
         try:
             with open('LICENSE', 'r') as f:
                 self.license_group_box.setTitle(f.readline())
@@ -20,5 +20,6 @@ class AboutForm(QtWidgets.QWidget, Ui_about_form):
 
     @report_with_exception
     def keyPressEvent(self, e: QtGui.QKeyEvent) -> None:
-        if e.key() == QtCore.Qt.Key_Escape:
+        if e.key() == QtCore.Qt.Key_F1:
             self.close()
+        super().keyPressEvent(e)

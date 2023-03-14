@@ -3,7 +3,6 @@ import os
 
 from PyQt5 import QtWidgets, QtGui, QtCore
 
-from gui.common import env
 from gui.common.env import report_with_exception
 from gui.common.error import OperationInterruptError
 from gui.designer.impl.about_form import AboutForm
@@ -20,10 +19,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     @report_with_exception
     def __init__(self, app: QtWidgets.QApplication, *args, **kwargs):
-        if env.window is None:
-            env.window = self
-        else:
-            raise RuntimeError
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self._name = self.windowTitle()
@@ -31,7 +26,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.gridLayout.addWidget(self.table_view, 0, 0, 1, 1)
         self.model = CipherFileItemModel(self.table_view)
         self.table_view.setModel(self.model)
-        self._about_form: AboutForm = AboutForm()
+        self._about_form: AboutForm = AboutForm(self)
         self.action_new.triggered.connect(self.new_file)
         self.action_open.triggered.connect(self.open_file)
         self.action_save.triggered.connect(self.save_file)
@@ -63,12 +58,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             e.accept()
         else:
             e.ignore()
+        super().dragEnterEvent(e)
 
     @report_with_exception
     def dropEvent(self, e: QtGui.QDropEvent) -> None:
         urls = e.mimeData().urls()
         if urls:
             self._load_file(urls[0].toLocalFile())
+        super().dropEvent(e)
 
     @report_with_exception
     def closeEvent(self, e: QtGui.QCloseEvent) -> None:
@@ -87,6 +84,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             e.ignore()
         if self._about_form:
             self._about_form.close()
+        super().closeEvent(e)
 
     @report_with_exception
     def changeEvent(self, e: QtCore.QEvent) -> None:
@@ -94,17 +92,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             if not self.isActiveWindow() or self.isMinimized():
                 if self.action_auto_lock.isChecked():
                     self.model.lock()
+        super().changeEvent(e)
 
     @report_with_exception
     def hideEvent(self, e: QtGui.QHideEvent) -> None:
         if self.action_auto_lock.isChecked():
             self.model.lock()
+        super().hideEvent(e)
 
     @report_with_exception
     def keyPressEvent(self, e: QtGui.QKeyEvent) -> None:
         if e.key() == QtCore.Qt.Key_F12:
             self.action_notes_mode.setChecked(False)
             self._notes_mode(False)
+        super().keyPressEvent(e)
 
     @report_with_exception
     def new_file(self, _):
@@ -175,7 +176,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     @report_with_exception
     def generate_item(self, _):
         index = self.table_view.currentIndex()
-        d = RandomPasswordDialog()
+        d = RandomPasswordDialog(self)
         d.exec_()
         self.model.set(index, d.result_plain_text_edit.toPlainText())
 
@@ -185,15 +186,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     @report_with_exception
     def file_attribute(self, _):
-        self.model.open_attribute_dialog()
+        self.model.open_attribute_dialog(self)
 
     @report_with_exception
     def encrypt_test(self, _):
-        EncryptTestDialog().run()
+        EncryptTestDialog(self).run()
 
     @report_with_exception
     def random_password(self, _):
-        RandomPasswordDialog().exec_()
+        RandomPasswordDialog(self).exec_()
 
     @report_with_exception
     def ren(self, _):
@@ -222,5 +223,4 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     @report_with_exception
     def about(self, _):
-        self._about_form = AboutForm()
         self._about_form.show()

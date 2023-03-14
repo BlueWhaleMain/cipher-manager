@@ -35,8 +35,9 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
     __logger = logging.getLogger(__name__)
     refreshed = QtCore.pyqtSignal()
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, parent_window: QtWidgets.QWidget, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._parent_window: QtWidgets.QWidget = parent_window
         self._edited: bool = False
         self._filepath: typing.Optional[str] = None
         self.__cipher_file: typing.Optional[_CipherFileType] = None
@@ -116,7 +117,8 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
             raise OperationInterruptError
         pp_pwd = None
         try:
-            pp_pwd = InputPasswordDialog().getpass('输入证书文件密码：', verify=True).encode(self._cipher_file.encoding)
+            pp_pwd = InputPasswordDialog(self._parent_window).getpass('输入证书文件密码：', verify=True).encode(
+                self._cipher_file.encoding)
         except OperationInterruptError:
             pass
         with open(pp_fp, 'wb') as pf:
@@ -128,7 +130,7 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
 
     def _build_crypt_algorithm(self):
         if isinstance(self._cipher_file, SimpleCipherFile):
-            rp = InputPasswordDialog().getpass('输入根密码', verify=self._cipher_file.rph == '').encode(
+            rp = InputPasswordDialog(self._parent_window).getpass('输入根密码', verify=self._cipher_file.rph == '').encode(
                 self._cipher_file.encoding)
             if isinstance(self._cipher_file, CipherDesFile):
                 self.__crypt_algorithm = DESCryptAlgorithm(rp, self._cipher_file.des_cfg)
@@ -161,7 +163,8 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
             if puk is None:
                 pp_pwd = None
                 try:
-                    pp_pwd = InputPasswordDialog().getpass('输入证书文件密码', '没有密码点击取消').encode(self._cipher_file.encoding)
+                    pp_pwd = InputPasswordDialog(self._parent_window).getpass('输入证书文件密码', '没有密码点击取消').encode(
+                        self._cipher_file.encoding)
                 except OperationInterruptError:
                     pass
                 try:
@@ -279,10 +282,10 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
             with open(filepath, 'w') as f:
                 json.dump(self._cipher_file.dict(), f, indent=2, cls=CryptoEncoder)
 
-    def open_attribute_dialog(self):
+    def open_attribute_dialog(self, parent: QtWidgets.QWidget):
         if not self.__cipher_file:
             raise OperationInterruptError
-        AttributeDialog().load_file(self._cipher_file)
+        AttributeDialog(parent).load_file(self._cipher_file)
 
     def _refresh(self, reload: bool = False):
         if reload is True:
@@ -414,7 +417,7 @@ class CipherFileItemModel(QtGui.QStandardItemModel):
     def make_cipher_file(self):
         if self.__cipher_file and self._edited:
             raise OperationInterruptError('有操作未保存')
-        self._cipher_file = NewCipherFileDialog().create_file()
+        self._cipher_file = NewCipherFileDialog(self._parent_window).create_file()
         self.save_file()
 
     def _edit_data(self, col: int, row: int):

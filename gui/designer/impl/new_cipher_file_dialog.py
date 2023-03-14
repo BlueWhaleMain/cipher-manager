@@ -23,8 +23,8 @@ hs = all_hash_algorithm()
 
 
 class NewCipherFileDialog(QtWidgets.QDialog, Ui_NewCipherFileDialog):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.setupUi(self)
         self._ok = False
         for name in es:
@@ -111,6 +111,7 @@ class NewCipherFileDialog(QtWidgets.QDialog, Ui_NewCipherFileDialog):
     def accept(self) -> None:
         self._ok = True
         self.close()
+        super().accept()
 
     def create_file(self) -> CipherFile:
         self.exec_()

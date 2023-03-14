@@ -62,8 +62,8 @@ class SpawnThread(CallableThread):
 
 
 class RandomPasswordDialog(QtWidgets.QDialog, Ui_RandomPasswordDialog):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.setupUi(self)
         self._configure = SpawnConfigure(pwd_mini_len=self.length_spin_box.minimum(), dictionary={
             '默认': '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~!@#$%^&*()_+',
@@ -133,3 +133,4 @@ class RandomPasswordDialog(QtWidgets.QDialog, Ui_RandomPasswordDialog):
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         if isinstance(self._spawn_thread, SpawnThread):
             self._spawn_thread.quit()
+        super().closeEvent(a0)
