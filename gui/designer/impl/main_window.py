@@ -18,6 +18,7 @@ from gui.widgets.table_view.base import BaseTableView
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     __logger = logging.getLogger(__name__)
 
+    @report_with_exception
     def __init__(self, app: QtWidgets.QApplication, *args, **kwargs):
         if env.window is None:
             env.window = self
@@ -51,9 +52,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.table_view.action_remove.triggered.connect(self.remove_item)
         arguments = app.arguments()
         if len(arguments) > 1:
-            self.load_file(arguments[1])
+            self._load_file(arguments[1])
         else:
-            self.refresh()
+            self._refresh()
         self.setStatusTip('就绪')
 
     @report_with_exception
