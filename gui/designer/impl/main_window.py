@@ -6,6 +6,7 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 from gui.common.env import report_with_exception
 from gui.common.error import OperationInterruptError
 from gui.designer.impl.about_form import AboutForm
+from gui.designer.impl.basic_type_conversion_form import BasicTypeConversionForm
 from gui.designer.impl.encrypt_test_dialog import EncryptTestDialog
 from gui.designer.impl.random_password_dialog import RandomPasswordDialog
 from gui.designer.impl.text_show_dialog import TextShowDialog
@@ -27,6 +28,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.model = CipherFileItemModel(self.table_view)
         self.table_view.setModel(self.model)
         self._about_form: AboutForm = AboutForm(self)
+        self._basic_type_conversion_form: BasicTypeConversionForm = BasicTypeConversionForm(self)
         self.action_new.triggered.connect(self.new_file)
         self.action_open.triggered.connect(self.open_file)
         self.action_save.triggered.connect(self.save_file)
@@ -35,6 +37,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.action_encrypt_test.triggered.connect(self.encrypt_test)
         self.action_import.triggered.connect(self.import_file)
         self.action_random_password.triggered.connect(self.random_password)
+        self.action_basic_type_conversion.triggered.connect(self.basic_type_conversion)
         self.action_ren.triggered.connect(self.ren)
         self.action_save_new.triggered.connect(self.save_new)
         self.action_stay_on_top.triggered.connect(self.stay_on_top)
@@ -84,6 +87,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             e.ignore()
         if self._about_form:
             self._about_form.close()
+        if self._basic_type_conversion_form:
+            self._basic_type_conversion_form.close()
         super().closeEvent(e)
 
     @report_with_exception
@@ -195,6 +200,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     @report_with_exception
     def random_password(self, _):
         RandomPasswordDialog(self).exec_()
+
+    @report_with_exception
+    def basic_type_conversion(self, _):
+        self._basic_type_conversion_form.show()
+        self._basic_type_conversion_form.activateWindow()
 
     @report_with_exception
     def ren(self, _):

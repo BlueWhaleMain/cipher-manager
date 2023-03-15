@@ -79,6 +79,7 @@
     <addaction name="action_hash_tools"/>
     <addaction name="action_encrypt_test"/>
     <addaction name="action_random_password"/>
+    <addaction name="action_basic_type_conversion"/>
    </widget>
    <widget class="QMenu" name="menu_view">
     <property name="title">
@@ -267,6 +268,11 @@
    </property>
    <property name="shortcut">
     <string>F1</string>
+   </property>
+  </action>
+  <action name="action_basic_type_conversion">
+   <property name="text">
+    <string>基本类型转换</string>
    </property>
   </action>
   <action name="action_ren">

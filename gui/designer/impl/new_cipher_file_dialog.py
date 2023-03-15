@@ -1,5 +1,3 @@
-import encodings
-
 from PyQt5 import QtWidgets
 
 from cm.crypto.aes.base import AesCfg, AESCryptAlgorithm, AESModeEnum
@@ -10,14 +8,10 @@ from cm.crypto.des.file import CipherDesFile
 from cm.crypto.rsa.file import CipherRSAFile
 from cm.file import CipherFile
 from cm.hash import all_hash_algorithm
+from gui.common import ENCODINGS
 from gui.common.env import report_with_exception
 from gui.common.error import OperationInterruptError
 from gui.designer.new_cipher_file_dialog import Ui_NewCipherFileDialog
-
-es = []
-for encoding in set(encodings.aliases.aliases.values()):
-    es.append(encodings.search_function(encoding).name.upper())
-es.sort()
 
 hs = all_hash_algorithm()
 
@@ -27,7 +21,7 @@ class NewCipherFileDialog(QtWidgets.QDialog, Ui_NewCipherFileDialog):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self._ok = False
-        for name in es:
+        for name in ENCODINGS:
             self.encoding_combo_box.addItem(name, name)
         self.encoding_combo_box.setCurrentText('UTF-8')
         self.cipher_type_list_widget.addItem('DES')
