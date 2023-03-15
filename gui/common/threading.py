@@ -1,4 +1,5 @@
 import abc
+import os
 
 from PyQt5 import QtCore, QtWidgets
 
@@ -22,8 +23,10 @@ class CallableThread(QtCore.QThread):
             self.excepted.emit(e)
 
     def _inner_excepted(self, e: BaseException):
+        t_e_name = type(e).__name__
+        es = str(e)
         QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Critical, f'[{self.__class__.__name__}]未知异常',
-                              f'{type(e).__name__}\r\n{e}').exec_()
+                              f'{t_e_name}：{os.linesep}{es}。' if es else f'{t_e_name}。').exec_()
 
     def excepted_enable(self):
         self.excepted.connect(self._inner_excepted)

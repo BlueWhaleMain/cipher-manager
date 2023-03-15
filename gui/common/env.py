@@ -1,5 +1,6 @@
 import functools
 import logging
+import os
 import typing
 
 from PyQt5 import QtWidgets
@@ -22,11 +23,14 @@ def report_with_exception(func):
                 break
             except OperationInterruptError as e:
                 if e.msg and e.exc:
-                    QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', f'{e.msg}：\n{e.exc}。',
+                    QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', f'{e.msg}：{os.linesep}{e.exc}。',
                                           parent=window).exec_()
                 elif e.exc:
+                    t_e_name = type(e.exc).__name__
+                    es = str(e.exc)
                     QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Critical, '错误',
-                                          f'{type(e.exc).__name__}：\n{e.exc}。', parent=window).exec_()
+                                          f'{t_e_name}：{os.linesep}{es}。' if es else f'{t_e_name}。',
+                                          parent=window).exec_()
                 elif e.msg:
                     QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information, '提示', e.msg + '。',
                                           parent=window).exec_()
@@ -35,15 +39,18 @@ def report_with_exception(func):
             except (SystemExit, KeyboardInterrupt) as e:
                 t_e_name = type(e).__name__
                 es = str(e)
-                __logger.info(f'{t_e_name}：{es}。' if es else t_e_name)
+                __logger.info(f'{t_e_name}：{es}。' if es else f'{t_e_name}。')
                 main_ignore_exception = e
                 # 静默处理
                 raise
             except BaseException as e:
                 __logger.error(e, exc_info=True)
                 main_ignore_exception = e
+                t_e_name = type(e).__name__
+                es = str(e)
                 result = QtWidgets.QMessageBox(
-                    QtWidgets.QMessageBox.Icon.Critical, '致命异常', f'{type(e).__name__}：\n{e}。',
+                    QtWidgets.QMessageBox.Icon.Critical, '致命异常',
+                    f'{t_e_name}：{os.linesep}{es}。' if es else f'{t_e_name}。',
                     QtWidgets.QMessageBox.Retry | QtWidgets.QMessageBox.Abort | QtWidgets.QMessageBox.Ignore,
                     window).exec_()
                 if result == QtWidgets.QMessageBox.Retry:
