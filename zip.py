@@ -109,7 +109,8 @@ def main(argv):
                 except ValueError:
                     compress_level = arg
     r = zip_file_path(input_path, output_path, output_name, compress_level)
-    print("完成压缩，共：", r, "个项目", "\r\n输出文件：", output_path + '/' + output_name, "耗时：", time_escape(time.time() - before))
+    print("完成压缩，共：", r, "个项目", os.linesep, "输出文件：", output_path + '/' + output_name, "耗时：",
+          time_escape(time.time() - before))
 
 
 def time_escape(t: float = 0, iteration: bool = False) -> str:

@@ -30,7 +30,7 @@ class Console:
             if os.name == 'nt':
                 os.system('cls')
                 return
-        print('\n' * 150)
+        print(os.linesep * 150)
 
     def input(self, prompt: str = '', mask: str = '') -> str:
         if mask:
