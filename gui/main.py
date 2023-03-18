@@ -45,6 +45,7 @@ def main():
                                   f'{t_e_name}：{os.linesep}{es}。' if es else f'{t_e_name}。').exec_()
         # 仅能记录app.exec_()执行之前的异常
         __logger.error(e, exc_info=True)
+        raise
     finally:
         if code:
             __logger.info(f'App exit code {code}.')
