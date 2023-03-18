@@ -1,3 +1,5 @@
+import sys
+
 from PyQt5 import QtWidgets
 
 from cm.crypto.aes.base import AesCfg, AESCryptAlgorithm, AESModeEnum
@@ -21,7 +23,9 @@ class NewCipherFileDialog(QtWidgets.QDialog, Ui_NewCipherFileDialog):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self._ok = False
+        self._encodings = []
         for name in ENCODINGS:
+            self._encodings.append(name)
             self.encoding_combo_box.addItem(name, name)
         self.encoding_combo_box.setCurrentText('UTF-8')
         self.cipher_type_list_widget.addItem('DES')
@@ -100,12 +104,20 @@ class NewCipherFileDialog(QtWidgets.QDialog, Ui_NewCipherFileDialog):
 
         self.cipher_type_list_widget.itemSelectionChanged.connect(self.selection_changed)
         self.cipher_type_list_widget.setCurrentRow(0)
+        self.current_location_encoding_push_button.clicked.connect(self._current_location_encoding)
 
     @report_with_exception
     def accept(self) -> None:
         self._ok = True
         self.close()
         super().accept()
+
+    @report_with_exception
+    def _current_location_encoding(self, _):
+        try:
+            self.encoding_combo_box.setCurrentIndex(self._encodings.index(sys.getdefaultencoding().upper()))
+        except ValueError as e:
+            raise OperationInterruptError('获取当前区域字符编码失败', e)
 
     def create_file(self) -> CipherFile:
         self.exec_()
