@@ -33,7 +33,7 @@ VSVersionInfo(
         [StringStruct(u'Comments', u'密码管理器-GUI'),
         StringStruct(u'CompanyName', u''),
         StringStruct(u'FileDescription', u'CipherManagerGUI'),
-        StringStruct(u'FileVersion', u'1.0.1.1'),
+        StringStruct(u'FileVersion', u'1.0.2.0'),
         StringStruct(u'InternalName', u'CipherManagerGUI.exe'),
         StringStruct(u'LegalCopyright', u'Copyright © BlueWhale 2022'),
         StringStruct(u'LegalTrademarks', u''),
