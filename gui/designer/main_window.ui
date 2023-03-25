@@ -16,8 +16,8 @@
   <property name="windowTitle">
    <string>CipherManagerGUI</string>
   </property>
-  <widget class="QWidget" name="centralwidget">
-   <layout class="QGridLayout" name="gridLayout"/>
+  <widget class="QWidget" name="central_widget">
+   <layout class="QGridLayout" name="grid_layout"/>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">

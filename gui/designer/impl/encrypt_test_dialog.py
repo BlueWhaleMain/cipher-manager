@@ -9,7 +9,7 @@ from gui.designer.encrypt_test_dialog import Ui_EncryptTestDialog
 from gui.widgets.item.readonly import ReadOnlyItem
 
 
-def test_tuple() -> typing.Generator[tuple[str, str, str], None, None]:
+def _test_tuple() -> typing.Generator[tuple[str, str, str], None, None]:
     yield 'DES', 'EDE3', 'CBC'
     sizes = ['128', '192', '256']
     aes_modes = ['ECB', 'CBC', 'CFB', 'OFB']
@@ -27,14 +27,25 @@ class EncryptTestDialog(QtWidgets.QDialog, Ui_EncryptTestDialog):
         self.mapping_table_view.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self._task = None
 
-    def load(self):
+    @report_with_exception
+    def closeEvent(self, e: QtGui.QCloseEvent) -> None:
+        if self._task:
+            self._task.cancel()
+        super().closeEvent(e)
+
+    def run(self):
+        self._task = threading.Timer(0, self._load)
+        self._task.start()
+        self.exec_()
+
+    def _load(self):
         self.model.clear()
         self.model.setHorizontalHeaderLabels(['名称', '加密算法', '模式'])
         red_color = QtGui.QColor('red')
         green_color = QtGui.QColor('green')
         pk = OpenSSL.crypto.PKey()
         pk.generate_key(OpenSSL.crypto.TYPE_RSA, 1024)
-        for enc, has, mod in test_tuple():
+        for enc, has, mod in _test_tuple():
             name = f'{enc}-{has}-{mod}'
             row = [ReadOnlyItem(name), ReadOnlyItem(enc), ReadOnlyItem(mod)]
             self.model.appendRow(row)
@@ -47,14 +58,3 @@ class EncryptTestDialog(QtWidgets.QDialog, Ui_EncryptTestDialog):
                     r.setForeground(red_color)
                     r.setToolTip(str(e))
         self._task = None
-
-    def run(self):
-        self._task = threading.Timer(0, self.load)
-        self._task.start()
-        self.exec_()
-
-    @report_with_exception
-    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
-        if self._task:
-            self._task.cancel()
-        super().closeEvent(a0)

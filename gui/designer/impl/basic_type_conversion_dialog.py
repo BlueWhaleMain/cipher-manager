@@ -5,12 +5,12 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 
 from gui.common import ENCODINGS
 from gui.common.env import report_with_exception
-from gui.designer.basic_type_conversion_form import Ui_basic_type_conversion_form
+from gui.designer.basic_type_conversion_dialog import Ui_basic_type_conversion_dialog
 from gui.widgets.item_model.struct import StructItemModel, Endianness, BasicTypes
 
 
-class BasicTypeConversionForm(QtWidgets.QDialog, Ui_basic_type_conversion_form):
-    """ 基本类型转换窗体 """
+class BasicTypeConversionDialog(QtWidgets.QDialog, Ui_basic_type_conversion_dialog):
+    """ 基本类型转换对话框 """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -27,31 +27,31 @@ class BasicTypeConversionForm(QtWidgets.QDialog, Ui_basic_type_conversion_form):
         body = set(ENCODINGS)
         for h in head:
             body.remove(h)
-        _translate = QtCore.QCoreApplication.translate
         self.to_string_method_combo_box.addItems(head + tuple(body))
+        _translate = QtCore.QCoreApplication.translate
         self.context_menu = QtWidgets.QMenu(self)
         self.action_up = QtWidgets.QAction(self)
-        self.action_up.setText(_translate('BaseTableView', '上移'))
+        self.action_up.setText(_translate('BasicTypeConversionDialog', '上移'))
         self.context_menu.addAction(self.action_up)
         self.action_up.triggered.connect(self._up_type)
         self.action_down = QtWidgets.QAction(self)
-        self.action_down.setText(_translate('BaseTableView', '下移'))
+        self.action_down.setText(_translate('BasicTypeConversionDialog', '下移'))
         self.context_menu.addAction(self.action_down)
         self.action_down.triggered.connect(self._down_type)
         self.context_menu.addSeparator()
         self.action_remove = QtWidgets.QAction(self)
-        self.action_remove.setText(_translate('BaseTableView', '删除'))
+        self.action_remove.setText(_translate('BasicTypeConversionDialog', '删除'))
         self.context_menu.addAction(self.action_remove)
         self.action_remove.triggered.connect(self._remove_type)
         self.action_clear = QtWidgets.QAction(self)
-        self.action_clear.setText(_translate('BaseTableView', '清空'))
+        self.action_clear.setText(_translate('BasicTypeConversionDialog', '清空'))
         self.context_menu.addAction(self.action_clear)
         self.action_clear.triggered.connect(self._clear_type)
-        self._model: StructItemModel = StructItemModel()
-        self.type_list_view.setModel(self._model)
-        self.type_list_view.customContextMenuRequested.connect(self.create_context_menu)
+        self.model: StructItemModel = StructItemModel()
+        self.type_list_view.setModel(self.model)
+        self.type_list_view.customContextMenuRequested.connect(self._create_context_menu)
         self.add_type_push_button.clicked.connect(self._add_type)
-        self._model.dataChanged.connect(self._types_changed)
+        self.model.dataChanged.connect(self._types_changed)
         self.endianness_combo_box.currentIndexChanged.connect(self._endian_changed)
         self.to_string_method_combo_box.currentIndexChanged.connect(self._to_string_method_changed)
         self.context_plain_text_edit.textChanged.connect(self._context_changed)
@@ -62,8 +62,8 @@ class BasicTypeConversionForm(QtWidgets.QDialog, Ui_basic_type_conversion_form):
         self._item = tuple()
 
     @report_with_exception
-    def create_context_menu(self, _):
-        c = self._model.rowCount()
+    def _create_context_menu(self, _):
+        c = self.model.rowCount()
         if c < 1:
             return
         if self.type_list_view.selectionModel().selectedIndexes():
@@ -83,7 +83,7 @@ class BasicTypeConversionForm(QtWidgets.QDialog, Ui_basic_type_conversion_form):
     @report_with_exception
     def _add_type(self, _):
         for i in range(self.count_spin_box.value()):
-            self._model.append(self._b2v[self.type_combo_box.currentData(0)])
+            self.model.append(self._b2v[self.type_combo_box.currentData(0)])
         self._types_changed_()
 
     @report_with_exception
@@ -101,30 +101,30 @@ class BasicTypeConversionForm(QtWidgets.QDialog, Ui_basic_type_conversion_form):
     def _move_type_(self, current_row: int, target_row: int):
         if current_row == target_row:
             return
-        if current_row < 0 or target_row > self._model.rowCount() - 1:
+        if current_row < 0 or target_row > self.model.rowCount() - 1:
             return
         if current_row < target_row:
-            if current_row == self._model.rowCount() - 1:
+            if current_row == self.model.rowCount() - 1:
                 return
         else:
             if current_row == 0:
                 return
-        row = self._model.takeRow(current_row)
-        self._model.insertRow(target_row, row)
-        self.type_list_view.setCurrentIndex(self._model.index(target_row, 0))
+        row = self.model.takeRow(current_row)
+        self.model.insertRow(target_row, row)
+        self.type_list_view.setCurrentIndex(self.model.index(target_row, 0))
 
     @report_with_exception
     def _remove_type(self, _):
         indexes = self.type_list_view.selectionModel().selectedIndexes()
         indexes.reverse()
         for i in indexes:
-            self._model.removeRow(i.row())
+            self.model.removeRow(i.row())
         self.type_list_view.selectionModel().clear()
         self._types_changed_()
 
     @report_with_exception
     def _clear_type(self, _):
-        self._model.clear()
+        self.model.clear()
         self._types_changed_()
 
     @report_with_exception
@@ -132,13 +132,13 @@ class BasicTypeConversionForm(QtWidgets.QDialog, Ui_basic_type_conversion_form):
         self._types_changed_()
 
     def _types_changed_(self):
-        s = self._model.struct
+        s = self.model.struct
         self.sizeof_val_label.setText(str(s.size))
         self._auto_rw()
 
     @report_with_exception
     def _endian_changed(self, *_):
-        self._model.endian = self._e2v[self.endianness_combo_box.currentData(0)]
+        self.model.endian = self._e2v[self.endianness_combo_box.currentData(0)]
         self._auto_rw()
 
     @report_with_exception
@@ -211,7 +211,7 @@ class BasicTypeConversionForm(QtWidgets.QDialog, Ui_basic_type_conversion_form):
             return
         self.bytes_length_val_label.setText(str(len(b)))
         try:
-            self._item = self._model.struct.unpack(b)
+            self._item = self.model.struct.unpack(b)
         except Exception as e:
             t_e_name = '解码失败'
             es = str(e)
@@ -222,7 +222,7 @@ class BasicTypeConversionForm(QtWidgets.QDialog, Ui_basic_type_conversion_form):
     def _write_(self):
         encode_type = self.to_string_method_combo_box.currentData(0)
         try:
-            b = self._model.struct.pack(*self._item)
+            b = self.model.struct.pack(*self._item)
         except Exception as e:
             t_e_name = '编码失败'
             es = str(e)

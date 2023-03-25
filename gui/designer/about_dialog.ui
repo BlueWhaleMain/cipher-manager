@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>about_form</class>
- <widget class="QWidget" name="about_form">
+ <class>about_dialog</class>
+ <widget class="QDialog" name="about_dialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -17,20 +17,7 @@
    <string>关于 CipherManagerGUI</string>
   </property>
   <layout class="QGridLayout" name="grid_layout">
-   <item row="3" column="0">
-    <spacer name="left_horizontal_spacer">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>161</width>
-       <height>20</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item row="2" column="2" rowspan="2">
+   <item row="4" column="2">
     <spacer name="right_horizontal_spacer">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
@@ -43,7 +30,20 @@
      </property>
     </spacer>
    </item>
-   <item row="1" column="0" colspan="3">
+   <item row="4" column="0">
+    <spacer name="left_horizontal_spacer">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>161</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="1" column="0" colspan="4">
     <widget class="QGroupBox" name="license_group_box">
      <property name="title">
       <string/>
@@ -62,17 +62,17 @@
      </layout>
     </widget>
    </item>
-   <item row="3" column="1">
-    <widget class="QPushButton" name="ok_push_button">
-     <property name="text">
-      <string>OK</string>
-     </property>
-    </widget>
-   </item>
    <item row="0" column="0">
     <widget class="QLabel" name="about_label">
      <property name="text">
       <string>CipherManagerGUI</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1">
+    <widget class="QDialogButtonBox" name="button_box">
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Ok</set>
      </property>
     </widget>
    </item>
@@ -81,13 +81,13 @@
  <resources/>
  <connections>
   <connection>
-   <sender>ok_push_button</sender>
-   <signal>clicked()</signal>
-   <receiver>about_form</receiver>
-   <slot>close()</slot>
+   <sender>button_box</sender>
+   <signal>accepted()</signal>
+   <receiver>about_dialog</receiver>
+   <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>216</x>
+     <x>213</x>
      <y>305</y>
     </hint>
     <hint type="destinationlabel">

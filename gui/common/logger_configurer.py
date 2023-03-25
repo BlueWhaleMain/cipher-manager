@@ -10,7 +10,7 @@ import pydantic
 
 class LoggerConfigurer:
     """ 日志配置器 """
-    __logger = logging.getLogger(__name__)
+    __logger: logging.Logger = logging.getLogger(__name__)
 
     class Config(pydantic.BaseModel):
         """ 日志配置 """

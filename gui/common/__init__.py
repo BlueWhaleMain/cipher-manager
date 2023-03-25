@@ -1,8 +1,8 @@
 import encodings
 
-_es = []
+__es = []
 for encoding in set(encodings.aliases.aliases.values()):
-    _es.append(encodings.search_function(encoding).name.upper())
-_es.sort()
+    __es.append(encodings.search_function(encoding).name.upper())
+__es.sort()
 
-ENCODINGS = frozenset(_es)
+ENCODINGS: frozenset[str] = frozenset(__es)

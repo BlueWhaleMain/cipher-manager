@@ -10,12 +10,12 @@ from gui.common.error import OperationInterruptError
 window: typing.Optional[QtWidgets.QMainWindow] = None
 # 避免一个异常记录两次
 main_ignore_exception: typing.Optional[BaseException] = None
-__logger = logging.getLogger(__name__)
+__logger: logging.Logger = logging.getLogger(__name__)
 
 
-def report_with_exception(func):
+def report_with_exception(func: typing.Callable[..., typing.Optional[typing.Any]]) -> typing.Callable[..., None]:
     @functools.wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs) -> None:
         global main_ignore_exception
         while True:
             try:

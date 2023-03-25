@@ -1,3 +1,5 @@
+import typing
+
 from PyQt5 import QtWidgets, QtGui
 
 from cm.crypto.aes.base import AESModeEnum
@@ -15,21 +17,13 @@ class AttributeDialog(QtWidgets.QDialog, Ui_attribute_dialog):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
-        self.model = QtGui.QStandardItemModel()
+        self.model: QtGui.QStandardItemModel = QtGui.QStandardItemModel(self.attribute_tree_view)
         self.model.setHorizontalHeaderLabels(['名称', '值'])
         self.attribute_tree_view.setModel(self.model)
         self.attribute_tree_view.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
 
-    @classmethod
-    def counter_row(cls, item: QtGui.QStandardItem, cipher_file):
-        color_gray = QtGui.QColor('gray')
-        left = ReadOnlyItem('存储的记录数量')
-        left.setForeground(color_gray)
-        right = ReadOnlyItem(str(len(cipher_file.records)))
-        right.setForeground(color_gray)
-        item.appendRow((left, right))
-
-    def load_file(self, cipher_file: CipherFile):
+    def load_file(self, cipher_file: CipherFile) -> int:
+        self.model.removeRows(0, self.model.rowCount())
         cipher_item = ReadOnlyItem('密钥文件属性')
         cipher_item.appendRow((ReadOnlyItem('文件编码'), ReadOnlyItem(cipher_file.encoding)))
         cipher_item.appendRow((ReadOnlyItem('加密类型'), ReadOnlyItem(cipher_file.encrypt_algorithm)))
@@ -40,7 +34,7 @@ class AttributeDialog(QtWidgets.QDialog, Ui_attribute_dialog):
                 (ReadOnlyItem('使用的哈希算法'), ReadOnlyItem(cipher_file.hash_algorithm)))
             simple_cipher_item.appendRow((ReadOnlyItem('根密码哈希值'), ReadOnlyItem(cipher_file.rph)))
             simple_cipher_item.appendRow((ReadOnlyItem('根密码盐值'), ReadOnlyItem(cipher_file.salt)))
-            self.counter_row(simple_cipher_item, cipher_file)
+            self._counter_row(simple_cipher_item, cipher_file)
             if isinstance(cipher_file, CipherDesFile):
                 cipher_des_item = ReadOnlyItem('DES文件附加属性')
                 cipher_des_item.appendRow(
@@ -67,7 +61,7 @@ class AttributeDialog(QtWidgets.QDialog, Ui_attribute_dialog):
                 (ReadOnlyItem('签名使用的哈希算法'), ReadOnlyItem(cipher_file.sign_hash_algorithm)))
             pp_cipher_item.appendRow(
                 (ReadOnlyItem('签名哈希值'), ReadOnlyItem(cipher_file.hash_algorithm_sign)))
-            self.counter_row(pp_cipher_item, cipher_file)
+            self._counter_row(pp_cipher_item, cipher_file)
             if isinstance(cipher_file, CipherRSAFile):
                 cipher_rsa_item = ReadOnlyItem('RSA文件附加属性')
                 pp_cipher_item.appendRow(cipher_rsa_item)
@@ -78,4 +72,13 @@ class AttributeDialog(QtWidgets.QDialog, Ui_attribute_dialog):
             cipher_item.appendRow(unknown_item)
         self.model.appendRow(cipher_item)
         self.attribute_tree_view.expandAll()
-        self.exec_()
+        return self.exec_()
+
+    @classmethod
+    def _counter_row(cls, item: QtGui.QStandardItem, cipher_file: typing.Union[SimpleCipherFile, PPCipherFile]) -> None:
+        color_gray = QtGui.QColor('gray')
+        left = ReadOnlyItem('存储的记录数量')
+        left.setForeground(color_gray)
+        right = ReadOnlyItem(str(len(cipher_file.records)))
+        right.setForeground(color_gray)
+        item.appendRow((left, right))

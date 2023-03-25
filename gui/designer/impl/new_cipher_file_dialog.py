@@ -102,7 +102,7 @@ class NewCipherFileDialog(QtWidgets.QDialog, Ui_NewCipherFileDialog):
         self.cipher_grid_layout.addWidget(self.sign_hash_algorithm_label, 2, 0, 1, 1)
         self.cipher_grid_layout.addWidget(self.sign_hash_algorithm_combo_box, 2, 1, 1, 1)
 
-        self.cipher_type_list_widget.itemSelectionChanged.connect(self.selection_changed)
+        self.cipher_type_list_widget.itemSelectionChanged.connect(self._selection_changed)
         self.cipher_type_list_widget.setCurrentRow(0)
         self.current_location_encoding_push_button.clicked.connect(self._current_location_encoding)
 
@@ -111,13 +111,6 @@ class NewCipherFileDialog(QtWidgets.QDialog, Ui_NewCipherFileDialog):
         self._ok = True
         self.close()
         super().accept()
-
-    @report_with_exception
-    def _current_location_encoding(self, _):
-        try:
-            self.encoding_combo_box.setCurrentIndex(self._encodings.index(sys.getdefaultencoding().upper()))
-        except ValueError as e:
-            raise OperationInterruptError('获取当前区域字符编码失败', e)
 
     def create_file(self) -> CipherFile:
         self.exec_()
@@ -145,13 +138,40 @@ class NewCipherFileDialog(QtWidgets.QDialog, Ui_NewCipherFileDialog):
         else:
             raise OperationInterruptError
 
-    def show_simple_cipher_widget(self):
+    @report_with_exception
+    def _selection_changed(self):
+        self._hide_widget()
+        mode = self.cipher_type_list_widget.currentIndex().row()
+        if mode == 0:
+            self._show_simple_cipher_widget()
+            self.des_mode_label.show()
+            self.des_mode_combo_box.show()
+            self.des_pad_mode_label.show()
+            self.des_pad_mode_combo_box.show()
+        elif mode == 1:
+            self._show_simple_cipher_widget()
+            self.aes_mode_label.show()
+            self.aes_mode_combo_box.show()
+        elif mode == 2:
+            self.sign_hash_algorithm_label.show()
+            self.sign_hash_algorithm_combo_box.show()
+        else:
+            raise OperationInterruptError('状态异常')
+
+    @report_with_exception
+    def _current_location_encoding(self, _):
+        try:
+            self.encoding_combo_box.setCurrentIndex(self._encodings.index(sys.getdefaultencoding().upper()))
+        except ValueError as e:
+            raise OperationInterruptError('获取当前区域字符编码失败', e)
+
+    def _show_simple_cipher_widget(self):
         self.hash_algorithm_label.show()
         self.hash_algorithm_combo_box.show()
         self.salt_length_label.show()
         self.salt_length_spin_box.show()
 
-    def hide_widget(self):
+    def _hide_widget(self):
         self.hash_algorithm_label.hide()
         self.hash_algorithm_combo_box.hide()
         self.salt_length_label.hide()
@@ -167,23 +187,3 @@ class NewCipherFileDialog(QtWidgets.QDialog, Ui_NewCipherFileDialog):
 
         self.sign_hash_algorithm_label.hide()
         self.sign_hash_algorithm_combo_box.hide()
-
-    @report_with_exception
-    def selection_changed(self):
-        self.hide_widget()
-        mode = self.cipher_type_list_widget.currentIndex().row()
-        if mode == 0:
-            self.show_simple_cipher_widget()
-            self.des_mode_label.show()
-            self.des_mode_combo_box.show()
-            self.des_pad_mode_label.show()
-            self.des_pad_mode_combo_box.show()
-        elif mode == 1:
-            self.show_simple_cipher_widget()
-            self.aes_mode_label.show()
-            self.aes_mode_combo_box.show()
-        elif mode == 2:
-            self.sign_hash_algorithm_label.show()
-            self.sign_hash_algorithm_combo_box.show()
-        else:
-            raise OperationInterruptError('状态异常')

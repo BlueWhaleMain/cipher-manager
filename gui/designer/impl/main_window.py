@@ -1,18 +1,15 @@
 import logging
-import os
 
 from PyQt5 import QtWidgets, QtGui, QtCore
 
 from gui.common.env import report_with_exception
 from gui.common.error import OperationInterruptError
-from gui.designer.impl.about_form import AboutForm
-from gui.designer.impl.basic_type_conversion_form import BasicTypeConversionForm
+from gui.designer.impl.about_dialog import AboutDialog
+from gui.designer.impl.basic_type_conversion_dialog import BasicTypeConversionDialog
 from gui.designer.impl.encrypt_test_dialog import EncryptTestDialog
 from gui.designer.impl.random_password_dialog import RandomPasswordDialog
-from gui.designer.impl.text_show_dialog import TextShowDialog
 from gui.designer.main_window import Ui_MainWindow
-from gui.widgets.item_model.cipher_file.base import CipherFileItemModel
-from gui.widgets.table_view.base import BaseTableView
+from gui.widgets.table_view.cipher_file.base import CipherFileTableView
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
@@ -23,36 +20,35 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self._name = self.windowTitle()
-        self.table_view = BaseTableView(self.centralwidget)
-        self.gridLayout.addWidget(self.table_view, 0, 0, 1, 1)
-        self.model = CipherFileItemModel(self.table_view)
+        self.table_view = CipherFileTableView(self.central_widget)
+        self.grid_layout.addWidget(self.table_view, 0, 0, 1, 1)
+        self.model = QtGui.QStandardItemModel(self.table_view)
+        self.model.setHorizontalHeaderLabels(['名称', '值'])
         self.table_view.setModel(self.model)
-        self._about_form: AboutForm = AboutForm(self)
-        self._basic_type_conversion_form: BasicTypeConversionForm = BasicTypeConversionForm(self)
-        self.action_new.triggered.connect(self.new_file)
-        self.action_open.triggered.connect(self.open_file)
-        self.action_save.triggered.connect(self.save_file)
-        self.action_export.triggered.connect(self.export_file)
-        self.action_attribute.triggered.connect(self.file_attribute)
-        self.action_encrypt_test.triggered.connect(self.encrypt_test)
-        self.action_import.triggered.connect(self.import_file)
-        self.action_random_password.triggered.connect(self.random_password)
-        self.action_basic_type_conversion.triggered.connect(self.basic_type_conversion)
-        self.action_ren.triggered.connect(self.ren)
-        self.action_save_new.triggered.connect(self.save_new)
-        self.action_stay_on_top.triggered.connect(self.stay_on_top)
-        self.action_notes_mode.triggered.connect(self.notes_mode)
-        self.action_about.triggered.connect(self.about)
-        self.model.refreshed.connect(self.refresh)
-        self.table_view.doubleClicked.connect(self.table_view_double_click)
-        self.table_view.action_view.triggered.connect(self.view_item)
-        self.table_view.action_generate.triggered.connect(self.generate_item)
-        self.table_view.action_remove.triggered.connect(self.remove_item)
+        self._about_dialog: AboutDialog = AboutDialog(self)
+        self._encrypt_test_dialog: EncryptTestDialog = EncryptTestDialog(self)
+        self._random_password_dialog: RandomPasswordDialog = RandomPasswordDialog(self)
+        self._basic_type_conversion_dialog: BasicTypeConversionDialog = BasicTypeConversionDialog(self)
+        self.action_new.triggered.connect(self._new_file)
+        self.action_open.triggered.connect(self._open_file)
+        self.action_save.triggered.connect(self._save_file)
+        self.action_export.triggered.connect(self._export_file)
+        self.action_attribute.triggered.connect(self._file_attribute)
+        self.action_encrypt_test.triggered.connect(self._encrypt_test)
+        self.action_import.triggered.connect(self._import_file)
+        self.action_random_password.triggered.connect(self._random_password)
+        self.action_basic_type_conversion.triggered.connect(self._basic_type_conversion)
+        self.action_ren.triggered.connect(self._ren)
+        self.action_save_new.triggered.connect(self._save_new)
+        self.action_stay_on_top.triggered.connect(self._stay_on_top)
+        self.action_notes_mode.triggered.connect(self._notes_mode)
+        self.action_about.triggered.connect(self._about)
+        self.table_view.refreshed.connect(self._refresh)
         arguments = app.arguments()
         if len(arguments) > 1:
-            self._load_file(arguments[1])
+            self._open_file_(arguments[1])
         else:
-            self._refresh()
+            self._refresh_()
         self.setStatusTip('就绪')
 
     @report_with_exception
@@ -67,28 +63,24 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def dropEvent(self, e: QtGui.QDropEvent) -> None:
         urls = e.mimeData().urls()
         if urls:
-            self._load_file(urls[0].toLocalFile())
+            self.table_view.open_file(urls[0].toLocalFile())
         super().dropEvent(e)
 
     @report_with_exception
     def closeEvent(self, e: QtGui.QCloseEvent) -> None:
-        if self.model.edited:
+        if self.table_view.edited:
             result = QtWidgets.QMessageBox(
                 QtWidgets.QMessageBox.Icon.Information, '退出', '有操作未保存。',
                 QtWidgets.QMessageBox.Save | QtWidgets.QMessageBox.Close | QtWidgets.QMessageBox.Cancel).exec_()
             if result == QtWidgets.QMessageBox.Save:
                 try:
-                    self.model.save_file()
+                    self.table_view.save_file()
                     return
                 except OperationInterruptError:
                     pass
             elif result == QtWidgets.QMessageBox.Close:
                 return
             e.ignore()
-        if self._about_form:
-            self._about_form.close()
-        if self._basic_type_conversion_form:
-            self._basic_type_conversion_form.close()
         super().closeEvent(e)
 
     @report_with_exception
@@ -96,66 +88,56 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if e.type() in (QtCore.QEvent.ActivationChange, QtCore.QEvent.WindowStateChange):
             if not self.isActiveWindow() or self.isMinimized():
                 if self.action_auto_lock.isChecked():
-                    self.model.lock()
+                    self.table_view.lock()
         super().changeEvent(e)
 
     @report_with_exception
     def hideEvent(self, e: QtGui.QHideEvent) -> None:
         if self.action_auto_lock.isChecked():
-            self.model.lock()
+            self.table_view.lock()
         super().hideEvent(e)
 
     @report_with_exception
     def keyPressEvent(self, e: QtGui.QKeyEvent) -> None:
         if e.key() == QtCore.Qt.Key_F12:
             self.action_notes_mode.setChecked(False)
-            self._notes_mode(False)
+            self._notes_mode_(False)
         super().keyPressEvent(e)
 
     @report_with_exception
-    def new_file(self, _):
-        self.model.make_cipher_file()
+    def _new_file(self, _):
+        self.table_view.new_file()
 
     @report_with_exception
-    def import_file(self, _):
-        filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, '选择文件', self.model.current_dir,
-                                                            '所有文件(*);;JSON文件(*.json)')
-        if filepath:
-            self.model.import_file(os.path.abspath(filepath))
+    def _import_file(self, _):
+        self.table_view.import_file()
 
     @report_with_exception
-    def open_file(self, _):
-        filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, '选择密钥文件', self.model.current_dir,
-                                                            '所有文件(*);;Pickle文件(*.pkl)')
-        if filepath:
-            self.load_file(filepath)
+    def _open_file(self, _):
+        self._open_file_()
+
+    def _open_file_(self, filepath: str = None):
+        self.table_view.open_file(filepath)
 
     @report_with_exception
-    def save_file(self, _):
-        self.model.save_file()
+    def _save_file(self, _):
+        self.table_view.save_file()
 
     @report_with_exception
-    def export_file(self, _):
-        self.model.dump_file()
+    def _export_file(self, _):
+        self.table_view.dump_file()
 
     @report_with_exception
-    def load_file(self, filepath: str):
-        self._load_file(filepath)
-
-    def _load_file(self, filepath: str):
-        self.model.load_file(os.path.abspath(filepath))
-
-    @report_with_exception
-    def refresh(self):
-        self._refresh()
-
     def _refresh(self):
-        self.setWindowTitle(f'{"*" if self.model.edited else ""}'
-                            f'{f"{self.model.filepath} - " if self.model.filepath else ""}'
+        self._refresh_()
+
+    def _refresh_(self):
+        self.setWindowTitle(f'{"*" if self.table_view.edited else ""}'
+                            f'{f"{self.table_view.filepath} - " if self.table_view.filepath else ""}'
                             f'{self._name}')
-        if self.model.has_file:
+        if self.table_view.has_file:
             self.action_attribute.setEnabled(True)
-            self.action_save.setEnabled(self.model.edited)
+            self.action_save.setEnabled(self.table_view.edited)
             self.action_ren.setEnabled(True)
             self.action_save_new.setEnabled(True)
             self.action_export.setEnabled(True)
@@ -168,62 +150,41 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.table_view.action_remove.setEnabled(self.model.rowCount() > 1)
 
     @report_with_exception
-    def table_view_double_click(self, index: QtCore.QModelIndex):
-        self.model.try_edit(index.column(), index.row())
+    def _file_attribute(self, _):
+        self.table_view.open_attribute_dialog()
 
     @report_with_exception
-    def view_item(self, _):
-        d = TextShowDialog()
-        d.setWindowTitle(self.table_view.action_view.text())
-        d.plain_text_edit.setPlainText(self.model.get(self.table_view.currentIndex()))
-        d.exec_()
+    def _encrypt_test(self, _):
+        self._encrypt_test_dialog.run()
 
     @report_with_exception
-    def generate_item(self, _):
-        index = self.table_view.currentIndex()
-        d = RandomPasswordDialog(self)
-        d.exec_()
-        self.model.set(index, d.result_plain_text_edit.toPlainText())
+    def _random_password(self, _):
+        self._random_password_dialog.show()
+        self._random_password_dialog.activateWindow()
 
     @report_with_exception
-    def remove_item(self, _):
-        self.model.remove(self.table_view.currentIndex().row())
+    def _basic_type_conversion(self, _):
+        self._basic_type_conversion_dialog.show()
+        self._basic_type_conversion_dialog.activateWindow()
 
     @report_with_exception
-    def file_attribute(self, _):
-        self.model.open_attribute_dialog(self)
+    def _ren(self, _):
+        self.table_view.move_file()
 
     @report_with_exception
-    def encrypt_test(self, _):
-        EncryptTestDialog(self).run()
+    def _save_new(self, _):
+        self.table_view.save_new_file()
 
     @report_with_exception
-    def random_password(self, _):
-        RandomPasswordDialog(self).exec_()
-
-    @report_with_exception
-    def basic_type_conversion(self, _):
-        self._basic_type_conversion_form.show()
-        self._basic_type_conversion_form.activateWindow()
-
-    @report_with_exception
-    def ren(self, _):
-        self.model.move_file()
-
-    @report_with_exception
-    def save_new(self, _):
-        self.model.save_new_file()
-
-    @report_with_exception
-    def stay_on_top(self, selected):
+    def _stay_on_top(self, selected):
         self.setWindowFlag(QtCore.Qt.WindowStaysOnTopHint, selected)
         self.show()
 
     @report_with_exception
-    def notes_mode(self, selected):
-        self._notes_mode(selected)
-
     def _notes_mode(self, selected):
+        self._notes_mode_(selected)
+
+    def _notes_mode_(self, selected):
         self.action_auto_lock.setChecked(not selected)
         if not self.action_stay_on_top.isChecked():
             self.setWindowFlag(QtCore.Qt.WindowStaysOnTopHint, selected)
@@ -232,5 +193,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.show()
 
     @report_with_exception
-    def about(self, _):
-        self._about_form.show()
+    def _about(self, _):
+        self._about_dialog.show()
+        self._about_dialog.activateWindow()
