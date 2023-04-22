@@ -73,6 +73,7 @@ class CipherFileTableView(QtWidgets.QTableView):
     @report_with_exception
     def setModel(self, model: typing.Optional[QtCore.QAbstractItemModel]) -> None:
         super().setModel(model)
+        model.dataChanged.connect(self._data_changed)
         self._refresh(reload=True)
 
     @report_with_exception
