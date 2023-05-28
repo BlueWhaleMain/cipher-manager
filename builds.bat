@@ -3,6 +3,10 @@
 @echo off
 set name=%1
 set ver=%2
+set archive_type=%3
+if not %archive_type%==release (
+    set ver=%ver%-%date:~0,4%_%date:~5,2%_%date:~8,2%-%time:~0,2%_%time:~3,2%_%time:~6,2%%archive_type%
+)
 set before=%time%
 if not "%2"=="" (
 	echo ×¼±¸ÖÐ...
