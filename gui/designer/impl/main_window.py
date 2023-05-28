@@ -7,6 +7,7 @@ from gui.common.error import OperationInterruptError
 from gui.designer.impl.about_dialog import AboutDialog
 from gui.designer.impl.basic_type_conversion_dialog import BasicTypeConversionDialog
 from gui.designer.impl.encrypt_test_dialog import EncryptTestDialog
+from gui.designer.impl.otp_dialog import OtpDialog
 from gui.designer.impl.random_password_dialog import RandomPasswordDialog
 from gui.designer.main_window import Ui_MainWindow
 from gui.widgets.table_view.cipher_file.base import CipherFileTableView
@@ -29,6 +30,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self._encrypt_test_dialog: EncryptTestDialog = EncryptTestDialog(self)
         self._random_password_dialog: RandomPasswordDialog = RandomPasswordDialog(self)
         self._basic_type_conversion_dialog: BasicTypeConversionDialog = BasicTypeConversionDialog(self)
+        self._otp_dialog: OtpDialog = OtpDialog(self)
         self.action_new.triggered.connect(self._new_file)
         self.action_open.triggered.connect(self._open_file)
         self.action_save.triggered.connect(self._save_file)
@@ -38,6 +40,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.action_import.triggered.connect(self._import_file)
         self.action_random_password.triggered.connect(self._random_password)
         self.action_basic_type_conversion.triggered.connect(self._basic_type_conversion)
+        self.action_otp.triggered.connect(self._otp)
         self.action_ren.triggered.connect(self._ren)
         self.action_save_new.triggered.connect(self._save_new)
         self.action_stay_on_top.triggered.connect(self._stay_on_top)
@@ -166,6 +169,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def _basic_type_conversion(self, _):
         self._basic_type_conversion_dialog.show()
         self._basic_type_conversion_dialog.activateWindow()
+
+    @report_with_exception
+    def _otp(self, _):
+        self._otp_dialog.show()
+        self._otp_dialog.activateWindow()
 
     @report_with_exception
     def _ren(self, _):

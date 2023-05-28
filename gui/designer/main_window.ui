@@ -80,6 +80,7 @@
     <addaction name="action_encrypt_test"/>
     <addaction name="action_random_password"/>
     <addaction name="action_basic_type_conversion"/>
+    <addaction name="action_otp"/>
    </widget>
    <widget class="QMenu" name="menu_view">
     <property name="title">
@@ -283,6 +284,11 @@
   <action name="action_save_new">
    <property name="text">
     <string>另存为</string>
+   </property>
+  </action>
+  <action name="action_otp">
+   <property name="text">
+    <string>OTP</string>
    </property>
   </action>
  </widget>

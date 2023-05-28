@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>otp_dialog</class>
+ <widget class="QDialog" name="otp_dialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>429</width>
+    <height>300</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>OTP</string>
+  </property>
+  <layout class="QGridLayout" name="grid_layout">
+   <item row="0" column="0">
+    <widget class="QLabel" name="cipher_label">
+     <property name="text">
+      <string>密钥：</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="1" colspan="2">
+    <widget class="QSpinBox" name="random_generate_bit_length_spin_box">
+     <property name="minimum">
+      <number>32</number>
+     </property>
+     <property name="maximum">
+      <number>32767</number>
+     </property>
+     <property name="value">
+      <number>32</number>
+     </property>
+    </widget>
+   </item>
+   <item row="7" column="0" colspan="7">
+    <widget class="QTabWidget" name="otp_tab_widget">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="hotp_tab">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <attribute name="title">
+       <string>HOTP</string>
+      </attribute>
+      <layout class="QGridLayout" name="hotp_tab_grid_layout">
+       <item row="0" column="2">
+        <widget class="QCheckBox" name="auto_grow_step_check_box">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>自动增长</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QSpinBox" name="step_spin_box">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="maximum">
+          <number>16777215</number>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1" colspan="2">
+        <widget class="QLineEdit" name="hotp_code_line_edit">
+         <property name="inputMask">
+          <string>999999</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="step_label">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>步数：</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="hotp_code_label">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>动态码：</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="3">
+        <widget class="QPushButton" name="verify_hotp_code_push_button">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>验证</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="3">
+        <widget class="QPushButton" name="generate_hotp_code_push_button">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>生成</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="totp_tab">
+      <attribute name="title">
+       <string>TOTP</string>
+      </attribute>
+      <layout class="QGridLayout" name="totp_tab_grid_layout">
+       <item row="2" column="4">
+        <widget class="QPushButton" name="verify_totp_code_push_button">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>验证</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="totp_code_label">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>动态码：</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1" colspan="2">
+        <widget class="QLineEdit" name="totp_code_line_edit">
+         <property name="inputMask">
+          <string>999999</string>
+         </property>
+         <property name="maxLength">
+          <number>6</number>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="date_time_edit_label">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>时间：</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="3">
+        <widget class="QCheckBox" name="date_time_edit_check_box">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>修改</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QSpinBox" name="time_slice_spin_box">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>60</number>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1" colspan="2">
+        <widget class="QDateTimeEdit" name="date_time_edit">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="readOnly">
+          <bool>true</bool>
+         </property>
+         <property name="displayFormat">
+          <string>yyyy/M/d H:mm:ss</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1" colspan="2">
+        <widget class="QProgressBar" name="time_remainder_progress_bar">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>1</height>
+          </size>
+         </property>
+         <property name="textVisible">
+          <bool>false</bool>
+         </property>
+         <property name="format">
+          <string>%v秒</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="time_slice_label">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>时间片长度：</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="3">
+        <widget class="QPushButton" name="generate_totp_code_push_button">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>生成</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="2">
+        <widget class="QCheckBox" name="auto_generate_totp_code_check_box">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>自动刷新</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+   <item row="5" column="0">
+    <widget class="QLabel" name="random_generate_bit_length_label">
+     <property name="text">
+      <string>位数：</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="3">
+    <widget class="QPushButton" name="random_generate_push_button">
+     <property name="text">
+      <string>随机生成</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="4">
+    <widget class="QLabel" name="hash_algorithm_label">
+     <property name="text">
+      <string>算法：</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="0">
+    <widget class="QLabel" name="otp_code_length_label">
+     <property name="text">
+      <string>动态码长度：</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="1" colspan="2">
+    <widget class="QSpinBox" name="otp_code_length_spin_box">
+     <property name="minimum">
+      <number>3</number>
+     </property>
+     <property name="value">
+      <number>6</number>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="6">
+    <widget class="QCheckBox" name="lock_cipher_check_box">
+     <property name="text">
+      <string>锁定</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="6">
+    <widget class="QPushButton" name="export_push_button">
+     <property name="text">
+      <string>导出到文件</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="6">
+    <widget class="QPushButton" name="import_from_text_file_push_button">
+     <property name="text">
+      <string>从文件导入</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1" rowspan="5" colspan="5">
+    <widget class="QPlainTextEdit" name="cipher_plain_text_edit">
+     <property name="placeholderText">
+      <string>Base32 String...</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="5">
+    <widget class="QComboBox" name="hash_algorithm_combo_box">
+     <property name="editable">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
