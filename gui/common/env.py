@@ -27,6 +27,7 @@ def report_with_exception(func: typing.Callable[..., typing.Optional[typing.Any]
                 func(*args, **kwargs)
                 break
             except OperationInterruptError as e:
+                __logger.debug(e, exc_info=True)
                 if e.msg and e.exc:
                     _message(QtWidgets.QMessageBox.Icon.Warning, '警告', f'{e.msg}：{os.linesep}{e.exc}。')
                 elif e.exc:
