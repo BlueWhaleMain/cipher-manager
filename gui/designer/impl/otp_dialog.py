@@ -1,13 +1,35 @@
 import datetime
 import hashlib
+import json
+import os
 import typing
 
+import pydantic
 import pyotp
 from PyQt5 import QtWidgets, QtCore
 
 from gui.common.env import report_with_exception
 from gui.common.error import OperationInterruptError
 from gui.designer.otp_dialog import Ui_otp_dialog
+
+_first_algo = 'SHA1'
+_algo = []
+for x in hashlib.algorithms_available:
+    if x.upper() == _first_algo:
+        continue
+    _algo.append(x)
+
+_algo.sort()
+_algo.insert(0, _first_algo)
+
+
+class OtpFile(pydantic.BaseModel):
+    """ OTP文件 """
+    s: str = pydantic.Field(title='密钥')
+    digits: int = pydantic.Field(title='动态码长度')
+    digest: str = pydantic.Field(title='算法')
+    step: int = pydantic.Field(None, title='步数')
+    time_slice: int = pydantic.Field(None, title='时间片长度')
 
 
 class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
@@ -18,20 +40,59 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
         self.setupUi(self)
         self._hotp: typing.Optional[pyotp.HOTP] = None
         self._totp: typing.Optional[pyotp.TOTP] = None
-        for name in hashlib.algorithms_available:
+        for name in _algo:
             self.hash_algorithm_combo_box.addItem(name.upper(), name)
         self.time_remainder_progress_bar.setVisible(False)
         self._totp_timer: QtCore.QTimer = QtCore.QTimer(self)
+        self.import_from_text_file_push_button.clicked.connect(self._import_from_text_file)
+        self.export_push_button.clicked.connect(self._export)
         self.random_generate_push_button.clicked.connect(self._random_generate)
         self.lock_cipher_check_box.stateChanged.connect(self._lock_cipher_change)
         self.auto_grow_step_check_box.stateChanged.connect(self._auto_grow_step_change)
         self.generate_hotp_code_push_button.clicked.connect(self._generate_hotp_code)
         self.verify_hotp_code_push_button.clicked.connect(self._verify_hotp_code)
         self._totp_timer.timeout.connect(self._totp_timer_timeout)
+        self.date_time_edit_check_box.stateChanged.connect(self._date_time_edit_change)
         self.time_slice_spin_box.valueChanged.connect(self._time_slice_value_change)
         self.auto_generate_totp_code_check_box.stateChanged.connect(self._auto_generate_totp_code_change)
         self.generate_totp_code_push_button.clicked.connect(self._generate_totp_code)
         self.verify_totp_code_push_button.clicked.connect(self._verify_totp_code)
+
+    @report_with_exception
+    def _import_from_text_file(self, _):
+        try:
+            if self.lock_cipher_check_box.isChecked():
+                return
+            filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, '选择文件', os.getcwd(), '所有文件(*);;JSON文件(*.json)')
+            if not filepath:
+                return
+            file = OtpFile.parse_file(filepath)
+            self.cipher_plain_text_edit.setPlainText(file.s)
+            self.otp_code_length_spin_box.setValue(file.digits)
+            self.hash_algorithm_combo_box.setCurrentText(file.digest)
+            if file.step:
+                self.step_spin_box.blockSignals(True)
+                self.step_spin_box.setValue(file.step)
+                self.step_spin_box.blockSignals(False)
+            if file.time_slice:
+                self.time_slice_spin_box.blockSignals(True)
+                self.time_slice_spin_box.setValue(file.time_slice)
+                self.time_slice_spin_box.blockSignals(False)
+        except Exception as e:
+            raise OperationInterruptError('导入失败', e)
+
+    @report_with_exception
+    def _export(self, _):
+        try:
+            file = OtpFile(s=self.cipher_plain_text_edit.toPlainText(), digits=self.otp_code_length_spin_box.value(),
+                           digest=self.hash_algorithm_combo_box.currentData(QtCore.Qt.UserRole),
+                           step=self.step_spin_box.value(), time_slice=self.time_slice_spin_box.value())
+            filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, '导出OTP文件', os.getcwd(), 'JSON文件(*.json);;所有文件(*)')
+            if filepath:
+                with open(filepath, 'w') as f:
+                    json.dump(file.dict(), f, indent=2)
+        except Exception as e:
+            raise OperationInterruptError('导出失败', e)
 
     @report_with_exception
     def _random_generate(self, _):
@@ -123,6 +184,10 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
             self.time_remainder_progress_bar.setValue(value)
             self.time_remainder_progress_bar.setStyleSheet(
                 f"QProgressBar::chunk{{background:hsl({100 * value / self._totp.interval}, 100%, 40%)}}")
+
+    @report_with_exception
+    def _date_time_edit_change(self, checked: bool):
+        self.date_time_edit.setReadOnly(not checked)
 
     @report_with_exception
     def _time_slice_value_change(self, value: int):

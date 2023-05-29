@@ -40,6 +40,7 @@ class Ui_otp_dialog(object):
         self.hotp_tab_grid_layout.addWidget(self.auto_grow_step_check_box, 0, 2, 1, 1)
         self.step_spin_box = QtWidgets.QSpinBox(self.hotp_tab)
         self.step_spin_box.setEnabled(False)
+        self.step_spin_box.setMaximum(16777215)
         self.step_spin_box.setObjectName("step_spin_box")
         self.hotp_tab_grid_layout.addWidget(self.step_spin_box, 0, 1, 1, 1)
         self.hotp_code_line_edit = QtWidgets.QLineEdit(self.hotp_tab)
@@ -152,7 +153,7 @@ class Ui_otp_dialog(object):
         self.grid_layout.addWidget(self.hash_algorithm_combo_box, 5, 5, 1, 1)
 
         self.retranslateUi(otp_dialog)
-        self.otp_tab_widget.setCurrentIndex(1)
+        self.otp_tab_widget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(otp_dialog)
 
     def retranslateUi(self, otp_dialog):
