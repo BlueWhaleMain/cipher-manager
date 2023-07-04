@@ -41,7 +41,7 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
         self._hotp: typing.Optional[pyotp.HOTP] = None
         self._totp: typing.Optional[pyotp.TOTP] = None
         for name in _algo:
-            self.hash_algorithm_combo_box.addItem(name.upper(), name)
+            self.hash_algorithm_combo_box.addItem(name.upper(), lambda: hashlib.new(name))
         self.time_remainder_progress_bar.setVisible(False)
         self._totp_timer: QtCore.QTimer = QtCore.QTimer(self)
         self.import_from_text_file_push_button.clicked.connect(self._import_from_text_file)
