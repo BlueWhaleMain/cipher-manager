@@ -10,9 +10,6 @@ class DescriptionIntEnum(int, enum.Enum):
         obj.description = description
         return obj
 
-    def __hash__(self):
-        return hash(self._name_)
-
     @classmethod
     def get_member_list(cls, fix_size: int = 0):
         member_index_list = [*cls._value2member_map_]
@@ -40,6 +37,3 @@ class DescriptionStrEnum(str, enum.Enum):
         obj._value_ = value
         obj.description = description
         return obj
-
-    def __hash__(self):
-        return hash(self._name_)
