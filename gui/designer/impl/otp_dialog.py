@@ -2,16 +2,20 @@ import datetime
 import hashlib
 import json
 import os
+import shutil
 import typing
 
 import pydantic
 import pyotp
-from PyQt5 import QtWidgets, QtCore
+import qrcode
+from PyQt5 import QtWidgets, QtCore, QtGui
 
 from gui.common.env import report_with_exception
 from gui.common.error import OperationInterruptError
+from gui.designer.impl.image_show_dialog import ImageShowDialog
 from gui.designer.otp_dialog import Ui_otp_dialog
 
+_OTP_QRCODE_TMP_FILENAME = 'otp_qrcode.tmp'
 _first_algo = 'SHA1'
 _algo = []
 for x in hashlib.algorithms_available:
@@ -42,6 +46,7 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
         self._totp: typing.Optional[pyotp.TOTP] = None
         for name in _algo:
             self.hash_algorithm_combo_box.addItem(name.upper(), lambda: hashlib.new(name))
+        self._image_show_dialog: ImageShowDialog = ImageShowDialog(self)
         self.time_remainder_progress_bar.setVisible(False)
         self._totp_timer: QtCore.QTimer = QtCore.QTimer(self)
         self.import_from_text_file_push_button.clicked.connect(self._import_from_text_file)
@@ -49,12 +54,14 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
         self.random_generate_push_button.clicked.connect(self._random_generate)
         self.lock_cipher_check_box.stateChanged.connect(self._lock_cipher_change)
         self.auto_grow_step_check_box.stateChanged.connect(self._auto_grow_step_change)
+        self.generate_hotp_qrcode_push_button.clicked.connect(self._generate_hotp_qrcode)
         self.generate_hotp_code_push_button.clicked.connect(self._generate_hotp_code)
         self.verify_hotp_code_push_button.clicked.connect(self._verify_hotp_code)
         self._totp_timer.timeout.connect(self._totp_timer_timeout)
         self.date_time_edit_check_box.stateChanged.connect(self._date_time_edit_change)
         self.time_slice_spin_box.valueChanged.connect(self._time_slice_value_change)
         self.auto_generate_totp_code_check_box.stateChanged.connect(self._auto_generate_totp_code_change)
+        self.generate_totp_qrcode_push_button.clicked.connect(self._generate_totp_qrcode)
         self.generate_totp_code_push_button.clicked.connect(self._generate_totp_code)
         self.verify_totp_code_push_button.clicked.connect(self._verify_totp_code)
 
@@ -141,6 +148,13 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
         self.step_spin_box.setReadOnly(checked)
 
     @report_with_exception
+    def _generate_hotp_qrcode(self, _):
+        if not isinstance(self._hotp, pyotp.HOTP):
+            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', '必须锁定密钥才能操作', parent=self).exec_()
+            return
+        self._generate_otp_qrcode(self._hotp.provisioning_uri(), 'HOTP')
+
+    @report_with_exception
     def _generate_hotp_code(self, _):
         if not isinstance(self._hotp, pyotp.HOTP):
             QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', '必须锁定密钥才能操作', parent=self).exec_()
@@ -203,6 +217,13 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
         self.time_remainder_progress_bar.setVisible(checked)
 
     @report_with_exception
+    def _generate_totp_qrcode(self, _):
+        if not isinstance(self._totp, pyotp.TOTP):
+            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', '必须锁定密钥才能操作', parent=self).exec_()
+            return
+        self._generate_otp_qrcode(self._totp.provisioning_uri(), 'TOTP')
+
+    @report_with_exception
     def _generate_totp_code(self, _):
         if not isinstance(self._totp, pyotp.TOTP):
             QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', '必须锁定密钥才能操作', parent=self).exec_()
@@ -226,3 +247,21 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
         except Exception as e:
             self.lock_cipher_check_box.setChecked(False)
             raise OperationInterruptError('校验失败', e)
+
+    def _generate_otp_qrcode(self, url: str, title: str):
+        with open(_OTP_QRCODE_TMP_FILENAME, 'wb') as f:
+            qrcode.make(url).save(f)
+
+        @report_with_exception
+        def _save(_):
+            filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, '保存二维码', os.getcwd(), 'PNG文件(*.png);;所有文件(*)')
+            if not filepath:
+                return
+            try:
+                shutil.copy(_OTP_QRCODE_TMP_FILENAME, filepath)
+            except Exception as e:
+                raise OperationInterruptError('保存失败', e)
+
+        self._image_show_dialog.init().with_save_button(_save).show_image(
+            title, QtGui.QPixmap(_OTP_QRCODE_TMP_FILENAME))
+        os.remove(_OTP_QRCODE_TMP_FILENAME)

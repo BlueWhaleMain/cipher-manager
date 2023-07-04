@@ -49,14 +49,14 @@
       <attribute name="title">
        <string>HOTP</string>
       </attribute>
-      <layout class="QGridLayout" name="hotp_tab_grid_layout">
-       <item row="0" column="2">
-        <widget class="QCheckBox" name="auto_grow_step_check_box">
+      <layout class="QGridLayout" name="gridLayout">
+       <item row="0" column="0">
+        <widget class="QLabel" name="step_label">
          <property name="enabled">
           <bool>false</bool>
          </property>
          <property name="text">
-          <string>自动增长</string>
+          <string>步数：</string>
          </property>
         </widget>
        </item>
@@ -70,24 +70,27 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="1" colspan="2">
-        <widget class="QLineEdit" name="hotp_code_line_edit">
-         <property name="inputMask">
-          <string>999999</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="step_label">
+       <item row="0" column="2">
+        <widget class="QCheckBox" name="auto_grow_step_check_box">
          <property name="enabled">
           <bool>false</bool>
          </property>
          <property name="text">
-          <string>步数：</string>
+          <string>自动增长</string>
          </property>
         </widget>
        </item>
-       <item row="2" column="0">
+       <item row="0" column="3" colspan="2">
+        <widget class="QPushButton" name="generate_hotp_qrcode_push_button">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>生成二维码</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
         <widget class="QLabel" name="hotp_code_label">
          <property name="enabled">
           <bool>false</bool>
@@ -97,23 +100,30 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="3">
-        <widget class="QPushButton" name="verify_hotp_code_push_button">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="text">
-          <string>验证</string>
+       <item row="1" column="1" colspan="2">
+        <widget class="QLineEdit" name="hotp_code_line_edit">
+         <property name="inputMask">
+          <string>999999</string>
          </property>
         </widget>
        </item>
-       <item row="0" column="3">
+       <item row="1" column="3">
         <widget class="QPushButton" name="generate_hotp_code_push_button">
          <property name="enabled">
           <bool>false</bool>
          </property>
          <property name="text">
           <string>生成</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="4">
+        <widget class="QPushButton" name="verify_hotp_code_push_button">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>验证</string>
          </property>
         </widget>
        </item>
@@ -246,6 +256,16 @@
          </property>
          <property name="text">
           <string>自动刷新</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="4">
+        <widget class="QPushButton" name="generate_totp_qrcode_push_button">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>生成二维码</string>
          </property>
         </widget>
        </item>
