@@ -22,7 +22,7 @@ class AboutDialog(QtWidgets.QDialog, Ui_about_dialog):
         self.setupUi(self)
         self.setWindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.Dialog)
         self.license_group_box.setTitle(LICENSE_TITLE)
-        self.license_plain_text_edit.setPlainText(LICENSE_TEXT)
+        self.license_text_edit.setMarkdown(LICENSE_TEXT)
 
     @report_with_exception
     def keyPressEvent(self, e: QtGui.QKeyEvent) -> None:
