@@ -21,7 +21,11 @@ _algo = []
 for x in hashlib.algorithms_available:
     if x.upper() == _first_algo:
         continue
-    _algo.append(x)
+    try:
+        getattr(hashlib, x.lower())
+        _algo.append(x)
+    except AttributeError:
+        pass
 
 _algo.sort()
 _algo.insert(0, _first_algo)
@@ -45,7 +49,7 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
         self._hotp: typing.Optional[pyotp.HOTP] = None
         self._totp: typing.Optional[pyotp.TOTP] = None
         for name in _algo:
-            self.hash_algorithm_combo_box.addItem(name.upper(), lambda: hashlib.new(name))
+            self.hash_algorithm_combo_box.addItem(name.upper(), getattr(hashlib, name.lower()))
         self._image_show_dialog: ImageShowDialog = ImageShowDialog(self)
         self.time_remainder_progress_bar.setVisible(False)
         self._totp_timer: QtCore.QTimer = QtCore.QTimer(self)
@@ -70,7 +74,8 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
         try:
             if self.lock_cipher_check_box.isChecked():
                 return
-            filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, '选择文件', os.getcwd(), '所有文件(*);;JSON文件(*.json)')
+            filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, '选择文件', os.getcwd(),
+                                                                '所有文件(*);;JSON文件(*.json)')
             if not filepath:
                 return
             file = OtpFile.parse_file(filepath)
@@ -94,7 +99,8 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
             file = OtpFile(s=self.cipher_plain_text_edit.toPlainText(), digits=self.otp_code_length_spin_box.value(),
                            digest=self.hash_algorithm_combo_box.currentData(QtCore.Qt.UserRole),
                            step=self.step_spin_box.value(), time_slice=self.time_slice_spin_box.value())
-            filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, '导出OTP文件', os.getcwd(), 'JSON文件(*.json);;所有文件(*)')
+            filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, '导出OTP文件', os.getcwd(),
+                                                                'JSON文件(*.json);;所有文件(*)')
             if filepath:
                 with open(filepath, 'w') as f:
                     json.dump(file.dict(), f, indent=2)
@@ -150,14 +156,16 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
     @report_with_exception
     def _generate_hotp_qrcode(self, _):
         if not isinstance(self._hotp, pyotp.HOTP):
-            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', '必须锁定密钥才能操作', parent=self).exec_()
+            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', '必须锁定密钥才能操作',
+                                  parent=self).exec_()
             return
         self._generate_otp_qrcode(self._hotp.provisioning_uri(), 'HOTP')
 
     @report_with_exception
     def _generate_hotp_code(self, _):
         if not isinstance(self._hotp, pyotp.HOTP):
-            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', '必须锁定密钥才能操作', parent=self).exec_()
+            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', '必须锁定密钥才能操作',
+                                  parent=self).exec_()
             return
         try:
             if self.auto_grow_step_check_box.isChecked():
@@ -170,7 +178,8 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
     @report_with_exception
     def _verify_hotp_code(self, _):
         if not isinstance(self._hotp, pyotp.HOTP):
-            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', '必须锁定密钥才能操作', parent=self).exec_()
+            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', '必须锁定密钥才能操作',
+                                  parent=self).exec_()
             return
         try:
             if self._hotp.verify(self.hotp_code_line_edit.text(), self.step_spin_box.value()):
@@ -206,7 +215,8 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
     @report_with_exception
     def _time_slice_value_change(self, value: int):
         if not isinstance(self._totp, pyotp.TOTP):
-            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', '必须锁定密钥才能操作', parent=self).exec_()
+            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', '必须锁定密钥才能操作',
+                                  parent=self).exec_()
             return
         self._totp.interval = value
         self.time_remainder_progress_bar.setMaximum(value)
@@ -219,14 +229,16 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
     @report_with_exception
     def _generate_totp_qrcode(self, _):
         if not isinstance(self._totp, pyotp.TOTP):
-            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', '必须锁定密钥才能操作', parent=self).exec_()
+            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', '必须锁定密钥才能操作',
+                                  parent=self).exec_()
             return
         self._generate_otp_qrcode(self._totp.provisioning_uri(), 'TOTP')
 
     @report_with_exception
     def _generate_totp_code(self, _):
         if not isinstance(self._totp, pyotp.TOTP):
-            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', '必须锁定密钥才能操作', parent=self).exec_()
+            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', '必须锁定密钥才能操作',
+                                  parent=self).exec_()
             return
         try:
             self.totp_code_line_edit.setText(self._totp.at(self.date_time_edit.dateTime().toTime_t()))
@@ -237,7 +249,8 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
     @report_with_exception
     def _verify_totp_code(self, _):
         if not isinstance(self._totp, pyotp.TOTP):
-            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', '必须锁定密钥才能操作', parent=self).exec_()
+            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', '必须锁定密钥才能操作',
+                                  parent=self).exec_()
             return
         try:
             if self._totp.verify(self.totp_code_line_edit.text()):
@@ -254,7 +267,8 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
 
         @report_with_exception
         def _save(_):
-            filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, '保存二维码', os.getcwd(), 'PNG文件(*.png);;所有文件(*)')
+            filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, '保存二维码', os.getcwd(),
+                                                                'PNG文件(*.png);;所有文件(*)')
             if not filepath:
                 return
             try:
