@@ -1,8 +1,8 @@
-.idea
+/.idea/
 *.iml
-log
-build
-dist
+/log/
+/build/
+/dist/
 *.egg-info
-cipher
+/cipher/
 HELP.md
