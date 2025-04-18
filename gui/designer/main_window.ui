@@ -25,7 +25,7 @@
      <x>0</x>
      <y>0</y>
      <width>799</width>
-     <height>23</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_file">
@@ -50,6 +50,9 @@
     <addaction name="action_import"/>
     <addaction name="action_export"/>
     <addaction name="action_attribute"/>
+    <addaction name="separator"/>
+    <addaction name="action_encrypt_file"/>
+    <addaction name="action_decrypt_file"/>
     <addaction name="separator"/>
     <addaction name="action_exit"/>
    </widget>
@@ -77,7 +80,6 @@
      <string>工具(&amp;O)</string>
     </property>
     <addaction name="action_hash_tools"/>
-    <addaction name="action_encrypt_test"/>
     <addaction name="action_random_password"/>
     <addaction name="action_basic_type_conversion"/>
     <addaction name="action_otp"/>
@@ -289,6 +291,19 @@
   <action name="action_otp">
    <property name="text">
     <string>OTP</string>
+   </property>
+  </action>
+  <action name="action_encrypt_file">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>加密文件</string>
+   </property>
+  </action>
+  <action name="action_decrypt_file">
+   <property name="text">
+    <string>解密文件</string>
    </property>
   </action>
  </widget>

@@ -1,21 +1,18 @@
+import os
 import sys
 
-from PyQt5 import QtWidgets
+import Crypto.Cipher.AES
+import Crypto.Cipher.DES
+from PyQt6 import QtWidgets, QtCore
 
-from cm.crypto.aes.base import AesCfg, AESCryptAlgorithm, AESModeEnum
-from cm.crypto.aes.file import CipherAesFile
-from cm.crypto.base import random_bytes
-from cm.crypto.des.base import DesCfg, DESCryptAlgorithm, DESModeEnum, DESPadModeEnum
-from cm.crypto.des.file import CipherDesFile
-from cm.crypto.rsa.file import CipherRSAFile
-from cm.file import CipherFile
-from cm.hash import all_hash_algorithm
+from cm.error import CmInterrupt
+from cm.file.base import CipherName, HashName, KeyType
+from cm.file.table_record import TableRecordCipherFile
 from gui.common import ENCODINGS
 from gui.common.env import report_with_exception
-from gui.common.error import OperationInterruptError
 from gui.designer.new_cipher_file_dialog import Ui_NewCipherFileDialog
 
-hs = all_hash_algorithm()
+_translate = QtCore.QCoreApplication.translate
 
 
 class NewCipherFileDialog(QtWidgets.QDialog, Ui_NewCipherFileDialog):
@@ -24,86 +21,143 @@ class NewCipherFileDialog(QtWidgets.QDialog, Ui_NewCipherFileDialog):
         self.setupUi(self)
         self._ok = False
         self._encodings = []
+
         for name in ENCODINGS:
             self._encodings.append(name)
             self.encoding_combo_box.addItem(name, name)
+
         self.encoding_combo_box.setCurrentText('UTF-8')
-        self.cipher_type_list_widget.addItem('DES')
+
+        self.cipher_type_list_widget.addItem('DES3')
         self.cipher_type_list_widget.addItem('AES')
-        self.cipher_type_list_widget.addItem('RSA')
-        self.hash_algorithm_label = QtWidgets.QLabel()
-        self.hash_algorithm_label.setObjectName('hash_algorithm_label')
-        self.hash_algorithm_label.setText('使用的哈希算法：')
-        self.hash_algorithm_combo_box = QtWidgets.QComboBox()
-        self.hash_algorithm_combo_box.setObjectName('hash_algorithm_combo_box')
-        self.hash_algorithm_combo_box.setEditable(True)
-        for h in hs:
-            self.hash_algorithm_combo_box.addItem(h.__TYPE__, h)
-        self.salt_length_label = QtWidgets.QLabel()
-        self.salt_length_label.setObjectName('salt_length_label')
-        self.salt_length_label.setText('盐值长度：')
-        self.salt_length_spin_box = QtWidgets.QSpinBox()
-        self.salt_length_spin_box.setObjectName('salt_length_spin_box')
-        self.salt_length_spin_box.setMinimum(16)
-        self.salt_length_spin_box.setValue(32)
+        self.cipher_type_list_widget.addItem('PKCS1')
 
-        self.cipher_grid_layout.addWidget(self.hash_algorithm_label, 0, 0, 1, 1)
-        self.cipher_grid_layout.addWidget(self.hash_algorithm_combo_box, 0, 1, 1, 1)
-        self.cipher_grid_layout.addWidget(self.salt_length_label, 1, 0, 1, 1)
-        self.cipher_grid_layout.addWidget(self.salt_length_spin_box, 1, 1, 1, 1)
+        self.iter_count_label = QtWidgets.QLabel(self)
+        self.iter_count_label.setObjectName('iter_count_label')
+        self.iter_count_label.setText(_translate('NewCipherFileDialog', '加密迭代次数：'))
+        self.iter_count_label.setToolTip(_translate('NewCipherFileDialog', '循环加密内容的次数'))
+        self.iter_count_spin_box = QtWidgets.QSpinBox(self)
+        self.iter_count_spin_box.setObjectName('iter_count_spin_box')
+        self.iter_count_spin_box.setMinimum(1)
+        self.iter_count_spin_box.setMaximum(2147483647)
+        self.iter_count_spin_box.setValue(1000)
 
-        self.des_mode_label = QtWidgets.QLabel()
+        self.cipher_grid_layout.addWidget(self.iter_count_label, 0, 0, 1, 1)
+        self.cipher_grid_layout.addWidget(self.iter_count_spin_box, 0, 1, 1, 1)
+
+        self.key_hash_name_label = QtWidgets.QLabel(self)
+        self.key_hash_name_label.setObjectName('key_hash_name_label')
+        self.key_hash_name_label.setText(_translate('NewCipherFileDialog', '使用的哈希算法：'))
+        self.key_hash_name_label.setToolTip(_translate('NewCipherFileDialog', '密钥摘要使用的哈希算法'))
+        self.key_hash_name_combo_box = QtWidgets.QComboBox(self)
+        self.key_hash_name_combo_box.setObjectName('key_hash_name_combo_box')
+        self.key_hash_name_combo_box.setEditable(True)
+
+        self.key_hash_name_combo_box.addItem(HashName.SHA1, HashName.SHA1)
+        self.key_hash_name_combo_box.addItem(HashName.SHA256, HashName.SHA256)
+        self.key_hash_name_combo_box.addItem(HashName.SHA512, HashName.SHA512)
+        self.key_hash_name_combo_box.addItem(HashName.BLAKE2B, HashName.BLAKE2B)
+        self.key_hash_name_combo_box.setCurrentIndex(3)
+
+        self.cipher_grid_layout.addWidget(self.key_hash_name_label, 1, 0, 1, 1)
+        self.cipher_grid_layout.addWidget(self.key_hash_name_combo_box, 1, 1, 1, 1)
+
+        self.key_hash_iter_count_label = QtWidgets.QLabel(self)
+        self.key_hash_iter_count_label.setObjectName('key_hash_iter_count_label')
+        self.key_hash_iter_count_label.setText(_translate('NewCipherFileDialog', '哈希迭代次数：'))
+        self.key_hash_iter_count_label.setToolTip(_translate('NewCipherFileDialog', '密钥摘要的迭代次数'))
+        self.key_hash_iter_count_spin_box = QtWidgets.QSpinBox(self)
+        self.key_hash_iter_count_spin_box.setObjectName('key_hash_iter_count_spin_box')
+        self.key_hash_iter_count_spin_box.setMinimum(1)
+        self.key_hash_iter_count_spin_box.setMaximum(2147483647)
+        self.key_hash_iter_count_spin_box.setValue(100)
+
+        self.cipher_grid_layout.addWidget(self.key_hash_iter_count_label, 2, 0, 1, 1)
+        self.cipher_grid_layout.addWidget(self.key_hash_iter_count_spin_box, 2, 1, 1, 1)
+
+        self.password_salt_len_label = QtWidgets.QLabel(self)
+        self.password_salt_len_label.setObjectName('password_salt_len_label')
+        self.password_salt_len_label.setText(_translate('NewCipherFileDialog', '盐值长度：'))
+        self.password_salt_len_label.setToolTip(_translate('NewCipherFileDialog', '防哈希碰撞的数据长度'))
+        self.password_salt_len_spin_box = QtWidgets.QSpinBox(self)
+        self.password_salt_len_spin_box.setObjectName('password_salt_len_spin_box')
+        self.password_salt_len_spin_box.setMinimum(16)
+        self.password_salt_len_spin_box.setValue(64)
+        self.password_salt_len_spin_box.setMaximum(2147483647)
+
+        self.cipher_grid_layout.addWidget(self.password_salt_len_label, 3, 0, 1, 1)
+        self.cipher_grid_layout.addWidget(self.password_salt_len_spin_box, 3, 1, 1, 1)
+
+        self.des_mode_label = QtWidgets.QLabel(self)
         self.des_mode_label.setObjectName('des_mode_label')
-        self.des_mode_label.setText('DES模式：')
-        self.des_mode_combo_box = QtWidgets.QComboBox()
+        self.des_mode_label.setText(_translate('NewCipherFileDialog', 'DES模式：'))
+        self.des_mode_combo_box = QtWidgets.QComboBox(self)
         self.des_mode_combo_box.setObjectName('des_mode_combo_box')
         self.des_mode_combo_box.setEditable(True)
-        self.des_mode_combo_box.addItem('ECB', DESModeEnum.ECB)
-        self.des_mode_combo_box.addItem('CBC', DESModeEnum.CBC)
-        self.des_mode_combo_box.setCurrentIndex(1)
-        self.des_pad_mode_label = QtWidgets.QLabel()
-        self.des_pad_mode_label.setObjectName('des_pad_mode_label')
-        self.des_pad_mode_label.setText('DES填充模式：')
-        self.des_pad_mode_combo_box = QtWidgets.QComboBox()
-        self.des_pad_mode_combo_box.setObjectName('des_pad_mode_combo_box')
-        self.des_pad_mode_combo_box.setEditable(True)
-        self.des_pad_mode_combo_box.addItem('NORMAL', DESPadModeEnum.NORMAL)
-        self.des_pad_mode_combo_box.addItem('PKCS5', DESPadModeEnum.PKCS5)
-        self.des_pad_mode_combo_box.setCurrentIndex(1)
 
-        self.cipher_grid_layout.addWidget(self.des_mode_label, 2, 0, 1, 1)
-        self.cipher_grid_layout.addWidget(self.des_mode_combo_box, 2, 1, 1, 1)
-        self.cipher_grid_layout.addWidget(self.des_pad_mode_label, 3, 0, 1, 1)
-        self.cipher_grid_layout.addWidget(self.des_pad_mode_combo_box, 3, 1, 1, 1)
+        self.des_mode_combo_box.addItem('CBC', Crypto.Cipher.DES.MODE_CBC)
+        self.des_mode_combo_box.setCurrentIndex(0)
 
-        self.aes_mode_label = QtWidgets.QLabel()
+        self.cipher_grid_layout.addWidget(self.des_mode_label, 4, 0, 1, 1)
+        self.cipher_grid_layout.addWidget(self.des_mode_combo_box, 4, 1, 1, 1)
+
+        self.aes_mode_label = QtWidgets.QLabel(self)
         self.aes_mode_label.setObjectName('aes_mode_label')
-        self.aes_mode_label.setText('AES模式：')
-        self.aes_mode_combo_box = QtWidgets.QComboBox()
+        self.aes_mode_label.setText(_translate('NewCipherFileDialog', 'AES模式：'))
+        self.aes_mode_combo_box = QtWidgets.QComboBox(self)
         self.aes_mode_combo_box.setObjectName('aes_mode_combo_box')
         self.aes_mode_combo_box.setEditable(True)
-        self.aes_mode_combo_box.addItem('CBC', AESModeEnum.CBC)
-        self.aes_mode_combo_box.addItem('CFB', AESModeEnum.CFB)
-        self.aes_mode_combo_box.addItem('OFB', AESModeEnum.OFB)
+
+        self.aes_mode_combo_box.addItem('CBC', Crypto.Cipher.AES.MODE_CBC)
         self.aes_mode_combo_box.setCurrentIndex(0)
 
-        self.cipher_grid_layout.addWidget(self.aes_mode_label, 2, 0, 1, 1)
-        self.cipher_grid_layout.addWidget(self.aes_mode_combo_box, 2, 1, 1, 1)
+        self.cipher_grid_layout.addWidget(self.aes_mode_label, 4, 0, 1, 1)
+        self.cipher_grid_layout.addWidget(self.aes_mode_combo_box, 4, 1, 1, 1)
 
-        self.sign_hash_algorithm_label = QtWidgets.QLabel()
-        self.sign_hash_algorithm_label.setObjectName('sign_hash_algorithm_label')
-        self.sign_hash_algorithm_label.setText('使用的签名哈希算法：')
-        self.sign_hash_algorithm_combo_box = QtWidgets.QComboBox()
-        self.sign_hash_algorithm_combo_box.setObjectName('sign_hash_algorithm_combo_box')
-        self.sign_hash_algorithm_combo_box.setEditable(True)
-        for h in hs:
-            self.sign_hash_algorithm_combo_box.addItem(h.__TYPE__, h)
+        self.aes_subtype_label = QtWidgets.QLabel(self)
+        self.aes_subtype_label.setObjectName('aes_subtype_label')
+        self.aes_subtype_label.setText(_translate('NewCipherFileDialog', 'AES子类型：'))
+        self.aes_subtype_combo_box = QtWidgets.QComboBox(self)
+        self.aes_subtype_combo_box.setObjectName('aes_subtype_combo_box')
+        self.aes_subtype_combo_box.setEditable(True)
 
-        self.cipher_grid_layout.addWidget(self.sign_hash_algorithm_label, 2, 0, 1, 1)
-        self.cipher_grid_layout.addWidget(self.sign_hash_algorithm_combo_box, 2, 1, 1, 1)
+        self.aes_subtype_combo_box.addItem(CipherName.AES128, CipherName.AES128)
+        self.aes_subtype_combo_box.addItem(CipherName.AES192, CipherName.AES192)
+        self.aes_subtype_combo_box.addItem(CipherName.AES256, CipherName.AES256)
+        self.aes_subtype_combo_box.setCurrentIndex(2)
+
+        self.cipher_grid_layout.addWidget(self.aes_subtype_label, 5, 0, 1, 1)
+        self.cipher_grid_layout.addWidget(self.aes_subtype_combo_box, 5, 1, 1, 1)
+
+        self.pkcs1_subtype_label = QtWidgets.QLabel(self)
+        self.pkcs1_subtype_label.setObjectName('pkcs1_subtype_label')
+        self.pkcs1_subtype_label.setText(_translate('NewCipherFileDialog', 'PKCS1子类型：'))
+        self.pkcs1_subtype_combo_box = QtWidgets.QComboBox(self)
+        self.pkcs1_subtype_combo_box.setObjectName('pkcs1_subtype_combo_box')
+        self.pkcs1_subtype_combo_box.setEditable(True)
+
+        self.pkcs1_subtype_combo_box.addItem(CipherName.PKCS1_OAEP, CipherName.PKCS1_OAEP)
+        self.pkcs1_subtype_combo_box.addItem(CipherName.PKCS1_V1_5, CipherName.PKCS1_V1_5)
+        self.pkcs1_subtype_combo_box.setCurrentIndex(0)
+
+        self.cipher_grid_layout.addWidget(self.pkcs1_subtype_label, 3, 0, 1, 1)
+        self.cipher_grid_layout.addWidget(self.pkcs1_subtype_combo_box, 3, 1, 1, 1)
+
+        self.key_type_label = QtWidgets.QLabel(self)
+        self.key_type_label.setObjectName('key_type_label')
+        self.key_type_label.setText(_translate('NewCipherFileDialog', 'KEY类型：'))
+        self.key_type_combo_box = QtWidgets.QComboBox(self)
+        self.key_type_combo_box.setObjectName('key_type_combo_box')
+        self.key_type_combo_box.setEditable(True)
+
+        self.key_type_combo_box.addItem(KeyType.RSA_KEYSTORE, KeyType.RSA_KEYSTORE)
+        self.key_type_combo_box.setCurrentIndex(0)
+
+        self.cipher_grid_layout.addWidget(self.key_type_label, 4, 0, 1, 1)
+        self.cipher_grid_layout.addWidget(self.key_type_combo_box, 4, 1, 1, 1)
 
         self.cipher_type_list_widget.itemSelectionChanged.connect(self._selection_changed)
-        self.cipher_type_list_widget.setCurrentRow(0)
+        self.cipher_type_list_widget.setCurrentRow(1)
         self.current_location_encoding_push_button.clicked.connect(self._current_location_encoding)
 
     @report_with_exception
@@ -112,78 +166,85 @@ class NewCipherFileDialog(QtWidgets.QDialog, Ui_NewCipherFileDialog):
         self.close()
         super().accept()
 
-    def create_file(self) -> CipherFile:
-        self.exec_()
+    def create_file(self) -> TableRecordCipherFile:
+        self.exec()
         if self._ok:
             mode = self.cipher_type_list_widget.currentIndex().row()
             if mode == 0:
-                salt = random_bytes(self.salt_length_spin_box.value())
-                return CipherDesFile(encoding=self.encoding_combo_box.currentText(),
-                                     hash_algorithm=self.hash_algorithm_combo_box.currentText(), salt=salt.hex(),
-                                     des_cfg=DesCfg(mode=self.des_mode_combo_box.currentData(),
-                                                    padmode=self.des_pad_mode_combo_box.currentData(),
-                                                    IV=DESCryptAlgorithm.generate_iv()))
+                return TableRecordCipherFile(content_encoding=self.encoding_combo_box.currentText(),
+                                             cipher_name=CipherName.DES3,
+                                             iter_count=self.iter_count_spin_box.value(),
+                                             key_hash_name=self.key_hash_name_combo_box.currentData(),
+                                             key_hash_iter_count=self.key_hash_iter_count_spin_box.value(),
+                                             password_salt_len=self.password_salt_len_spin_box.value(),
+                                             cipher_args=dict(mode=self.des_mode_combo_box.currentData(),
+                                                              iv=os.urandom(8)))
             elif mode == 1:
-                salt = random_bytes(self.salt_length_spin_box.value())
                 aes_mode = self.aes_mode_combo_box.currentData()
-                return CipherAesFile(encoding=self.encoding_combo_box.currentText(),
-                                     hash_algorithm=self.hash_algorithm_combo_box.currentText(), salt=salt.hex(),
-                                     aes_cfg=AesCfg(mode=aes_mode,
-                                                    IV=AESCryptAlgorithm.generate_iv(aes_mode)))
+                return TableRecordCipherFile(content_encoding=self.encoding_combo_box.currentText(),
+                                             cipher_name=self.aes_subtype_combo_box.currentData(),
+                                             iter_count=self.iter_count_spin_box.value(),
+                                             key_hash_name=self.key_hash_name_combo_box.currentData(),
+                                             key_hash_iter_count=self.key_hash_iter_count_spin_box.value(),
+                                             password_salt_len=self.password_salt_len_spin_box.value(),
+                                             cipher_args=dict(mode=aes_mode, iv=os.urandom(16)))
             elif mode == 2:
-                return CipherRSAFile(encoding=self.encoding_combo_box.currentText(),
-                                     sign_hash_algorithm=self.sign_hash_algorithm_combo_box.currentText())
+                return TableRecordCipherFile(content_encoding=self.encoding_combo_box.currentText(),
+                                             cipher_name=self.pkcs1_subtype_combo_box.currentData(),
+                                             iter_count=self.iter_count_spin_box.value(),
+                                             key_type=self.key_type_combo_box.currentData(),
+                                             key_hash_name=self.key_hash_name_combo_box.currentData(),
+                                             key_hash_iter_count=self.key_hash_iter_count_spin_box.value())
             else:
-                raise OperationInterruptError('状态异常')
-        else:
-            raise OperationInterruptError
+                raise RuntimeError(f'{_translate("NewCipherFileDialog", "状态异常：")}mode = {mode}')
+        raise CmInterrupt
 
     @report_with_exception
     def _selection_changed(self):
-        self._hide_widget()
+        self._hide_conflict_widget()
         mode = self.cipher_type_list_widget.currentIndex().row()
         if mode == 0:
-            self._show_simple_cipher_widget()
+            self.password_salt_len_label.show()
+            self.password_salt_len_spin_box.show()
             self.des_mode_label.show()
             self.des_mode_combo_box.show()
-            self.des_pad_mode_label.show()
-            self.des_pad_mode_combo_box.show()
+            self.iter_count_spin_box.setValue(2000)
         elif mode == 1:
-            self._show_simple_cipher_widget()
+            self.password_salt_len_label.show()
+            self.password_salt_len_spin_box.show()
             self.aes_mode_label.show()
             self.aes_mode_combo_box.show()
+            self.aes_subtype_label.show()
+            self.aes_subtype_combo_box.show()
+            self.iter_count_spin_box.setValue(1000)
         elif mode == 2:
-            self.sign_hash_algorithm_label.show()
-            self.sign_hash_algorithm_combo_box.show()
+            self.pkcs1_subtype_label.show()
+            self.pkcs1_subtype_combo_box.show()
+            self.key_type_label.show()
+            self.key_type_combo_box.show()
+            self.iter_count_spin_box.setValue(1)
         else:
-            raise OperationInterruptError('状态异常')
+            raise RuntimeError(f'{_translate("NewCipherFileDialog", "状态异常：")}mode = {mode}')
 
     @report_with_exception
     def _current_location_encoding(self, _):
-        try:
-            self.encoding_combo_box.setCurrentIndex(self._encodings.index(sys.getdefaultencoding().upper()))
-        except ValueError as e:
-            raise OperationInterruptError('获取当前区域字符编码失败', e)
+        self.encoding_combo_box.setCurrentIndex(self._encodings.index(sys.getdefaultencoding().upper()))
 
-    def _show_simple_cipher_widget(self):
-        self.hash_algorithm_label.show()
-        self.hash_algorithm_combo_box.show()
-        self.salt_length_label.show()
-        self.salt_length_spin_box.show()
-
-    def _hide_widget(self):
-        self.hash_algorithm_label.hide()
-        self.hash_algorithm_combo_box.hide()
-        self.salt_length_label.hide()
-        self.salt_length_spin_box.hide()
+    def _hide_conflict_widget(self):
+        self.password_salt_len_label.hide()
+        self.password_salt_len_spin_box.hide()
 
         self.des_mode_label.hide()
         self.des_mode_combo_box.hide()
-        self.des_pad_mode_label.hide()
-        self.des_pad_mode_combo_box.hide()
 
         self.aes_mode_label.hide()
         self.aes_mode_combo_box.hide()
 
-        self.sign_hash_algorithm_label.hide()
-        self.sign_hash_algorithm_combo_box.hide()
+        self.aes_subtype_label.hide()
+        self.aes_subtype_combo_box.hide()
+
+        self.pkcs1_subtype_label.hide()
+        self.pkcs1_subtype_combo_box.hide()
+
+        self.key_type_label.hide()
+        self.key_type_combo_box.hide()

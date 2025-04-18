@@ -4,6 +4,7 @@ import os.path
 import sys
 import typing
 import warnings
+from logging.handlers import RotatingFileHandler
 
 import pydantic
 
@@ -17,8 +18,8 @@ class LoggerConfigurer:
         # 等级（默认INFO）
         level: str = 'INFO'
         formatter_str: typing.Optional[str] = None
-        # %Y %m %d %H %M %S %f {name} {sequence}
-        # 年 月  日 时  分 秒 微秒 名称   序号
+        # %Y %m %d %H %M %S %f {name}
+        # 年 月  日 时  分 秒 微秒 名称
         path_pattern: typing.Optional[str] = None
 
     def __init__(self, cfg: Config, logger: logging.Logger = logging.root):
@@ -31,6 +32,7 @@ class LoggerConfigurer:
         return logging.Formatter(self._cfg.formatter_str)
 
     def make_color_formatter(self) -> logging.Formatter:
+        # noinspection PyPackageRequirements
         import colorlog
         return colorlog.ColoredFormatter(f'%(log_color)s{self._cfg.formatter_str}')
 
@@ -54,20 +56,11 @@ class LoggerConfigurer:
         """ 启动文件输出 """
         if not self._cfg.path_pattern:
             raise RuntimeError
-        filename = datetime.datetime.now().strftime(self._cfg.path_pattern).format(name=name, sequence='{sequence}')
+        filename = datetime.datetime.now().strftime(self._cfg.path_pattern).format(name=name)
         dirname = os.path.dirname(filename)
         if not os.path.exists(dirname):
             os.makedirs(dirname)
-        t_filename = filename.format(sequence='')
-        if os.path.exists(t_filename):
-            if filename == filename.format(sequence='?'):
-                raise ValueError(self._cfg.path_pattern)
-            seq = 1
-            while os.path.exists(t_filename):
-                t_filename = filename.format(sequence=f'-{seq}')
-                seq += 1
-        filename = t_filename
-        handler = logging.FileHandler(filename)
+        handler = RotatingFileHandler(filename, maxBytes=1024 * 1024 * 10, backupCount=10, encoding='utf-8')
         handler.setFormatter(self.make_formatter())
         handler.setLevel(self._cfg.level.upper())
         self._logger.addHandler(handler)

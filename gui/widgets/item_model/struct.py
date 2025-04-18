@@ -1,9 +1,9 @@
 import struct
 
-from PyQt5 import QtGui
+from PyQt6 import QtGui
 
 from common.enum import DescriptionStrEnum
-from gui.widgets.item.enum import EnumItem
+from gui.widgets.item.value import ValueItem
 
 
 class Endianness(DescriptionStrEnum):
@@ -52,12 +52,15 @@ class StructItemModel(QtGui.QStandardItemModel):
 
     @property
     def struct(self) -> struct.Struct:
+        # extended enum
         s = self._endian.value
         for i in range(self.rowCount()):
             r = self.item(i, 0)
-            if isinstance(r, EnumItem):
+            if isinstance(r, ValueItem):
                 s += r.real
+        # ignore
+        # is str not tuple
         return struct.Struct(s)
 
     def append(self, t: BasicTypes):
-        self.appendRow(EnumItem(t))
+        self.appendRow(ValueItem(t, t.description))

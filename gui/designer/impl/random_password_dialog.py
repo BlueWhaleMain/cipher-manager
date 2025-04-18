@@ -1,13 +1,14 @@
+import json
 import os
 import random
 import re
 import typing
 
 import pydantic
-from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt6 import QtWidgets, QtGui, QtCore, sip
 
+from cm import CmValueError
 from gui.common.env import report_with_exception
-from gui.common.error import OperationInterruptError
 from gui.common.threading import CallableThread
 from gui.designer.random_password_dialog import Ui_RandomPasswordDialog
 
@@ -41,11 +42,8 @@ class SpawnThread(CallableThread[str]):
         self._retry_max = 64
 
     def __del__(self):
-        try:
+        if not sip.isdeleted(self):
             self.wait()
-        except RuntimeError:
-            # RuntimeError: wrapped C/C++ object of type SpawnThread has been deleted
-            pass
 
     def _run(self) -> str:
         retry = 0
@@ -88,17 +86,23 @@ class RandomPasswordDialog(QtWidgets.QDialog, Ui_RandomPasswordDialog):
 
     def manual_spawn(self) -> str:
         self.result_plain_text_edit.clear()
-        self.exec_()
+        self.exec()
         return self.result_plain_text_edit.toPlainText()
 
     @report_with_exception
     def _import_file(self, _):
-        filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, '选择文件', os.getcwd(), '所有文件(*);;JSON文件(*.json)')
+        filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, '选择文件', os.getcwd(),
+                                                            '所有文件(*);;JSON文件(*.json)')
         if filepath:
             try:
-                self._configure = _SpawnConfigure.parse_file(os.path.abspath(filepath))
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+            except UnicodeDecodeError as e:
+                raise CmValueError('文件格式异常') from e
+            try:
+                self._configure = _SpawnConfigure.model_validate(data)
             except ValueError as e:
-                raise OperationInterruptError('文件格式异常', e)
+                raise CmValueError('文件格式异常', *e.args) from e
             self._apply_configure()
 
     @report_with_exception
@@ -126,7 +130,7 @@ class RandomPasswordDialog(QtWidgets.QDialog, Ui_RandomPasswordDialog):
             self.condition_list_widget.setDisabled(True)
             self._spawn_thread = SpawnThread(self.character_set_combo_box.currentData(QtCore.Qt.ItemDataRole.UserRole),
                                              self.length_spin_box.value(), self._get_conditions())
-            self._spawn_thread.excepted_enable()
+            self._spawn_thread.enable_default_except()
             self._spawn_thread.start()
             self._spawn_thread.returned.connect(self._show_spawn)
 

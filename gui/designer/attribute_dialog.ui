@@ -14,10 +14,38 @@
    <string>属性</string>
   </property>
   <layout class="QGridLayout" name="grid_layout">
-   <item row="0" column="0">
-    <widget class="QTreeView" name="attribute_tree_view"/>
+   <item row="2" column="0">
+    <widget class="QTabWidget" name="attribute_tab_widget">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="formatted">
+      <attribute name="title">
+       <string>格式化</string>
+      </attribute>
+      <layout class="QGridLayout" name="formatted_grid_layout">
+       <item row="0" column="0">
+        <widget class="QTreeView" name="attribute_tree_view"/>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="raw_data">
+      <attribute name="title">
+       <string>原始数据</string>
+      </attribute>
+      <layout class="QGridLayout" name="raw_data_grid_layout">
+       <item row="0" column="0">
+        <widget class="QTextEdit" name="raw_data_text_edit">
+         <property name="readOnly">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
    </item>
-   <item row="1" column="0">
+   <item row="3" column="0">
     <widget class="QDialogButtonBox" name="button_box">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>

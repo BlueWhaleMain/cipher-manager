@@ -1,6 +1,6 @@
 import typing
 
-from PyQt5 import QtWidgets, QtGui
+from PyQt6 import QtWidgets, QtGui
 
 from gui.designer.image_show_dialog import Ui_image_show_dialog
 
@@ -15,7 +15,7 @@ class ImageShowDialog(QtWidgets.QDialog, Ui_image_show_dialog):
     def init(self) -> 'ImageShowDialog':
         """ 初始化 """
         self.button_box.clear()
-        self.button_box.setStandardButtons(QtWidgets.QDialogButtonBox.Ok)
+        self.button_box.setStandardButtons(QtWidgets.QDialogButtonBox.StandardButton.Ok)
         return self
 
     def with_save_button(self, save_cb: typing.Callable[[bool], typing.Any]) -> 'ImageShowDialog':
@@ -23,8 +23,8 @@ class ImageShowDialog(QtWidgets.QDialog, Ui_image_show_dialog):
         添加保存按钮
         :param save_cb: 保存回调
         """
-        self.button_box.addButton(QtWidgets.QDialogButtonBox.Save)
-        self.button_box.button(QtWidgets.QDialogButtonBox.Save).clicked.connect(save_cb)
+        self.button_box.addButton(QtWidgets.QDialogButtonBox.StandardButton.Save)
+        self.button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Save).clicked.connect(save_cb)
         return self
 
     def show_image(self, title: str, pixmap: QtGui.QPixmap) -> int:
@@ -35,4 +35,4 @@ class ImageShowDialog(QtWidgets.QDialog, Ui_image_show_dialog):
         """
         self.setWindowTitle(title)
         self.image_label.setPixmap(pixmap)
-        return self.exec_()
+        return self.exec()

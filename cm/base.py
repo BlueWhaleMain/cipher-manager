@@ -1,13 +1,25 @@
-import json
-import random
+import base64
+import ctypes
+import sys
+from json import JSONEncoder
 
 
-class CryptAlgorithm:
-    __TYPE__: str
+def copy_bytes(data: bytes) -> bytes:
+    return bytes.fromhex(data.hex())
 
 
-def random_bytes(bytes_len: int) -> bytes:
-    return bytes([random.randint(0, 255) for _ in range(bytes_len)])
+erase_disabled = False
+
+
+def erase(secret):
+    if erase_disabled:
+        return
+    if sys.maxsize > 2 ^ 32:
+        offset = 24  # 64位操作系统
+    else:
+        offset = 12  # 32位操作系统
+    buffer_size = sys.getsizeof(secret) - offset
+    ctypes.memset(id(secret) + offset, 0, buffer_size)
 
 
 def fixed_bytes(data: bytes, unit_len: int, min_len: int = 0, max_len: int = None):
@@ -27,8 +39,8 @@ def fixed_bytes(data: bytes, unit_len: int, min_len: int = 0, max_len: int = Non
         raise ValueError(data)
 
 
-class CryptoEncoder(json.JSONEncoder):
+class CmJsonEncoder(JSONEncoder):
 
     def default(self, o):
         if isinstance(o, bytes):
-            return o.hex()
+            return base64.standard_b64encode(o).decode()

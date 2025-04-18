@@ -1,7 +1,7 @@
 import base64
 import os
 
-from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt6 import QtWidgets, QtCore, QtGui
 
 from gui.common import ENCODINGS
 from gui.common.env import report_with_exception
@@ -19,9 +19,11 @@ class BasicTypeConversionDialog(QtWidgets.QDialog, Ui_basic_type_conversion_dial
         for v in Endianness.__members__:
             self.endianness_combo_box.addItem(Endianness[v].description, Endianness[v])
             self._e2v[Endianness[v].description] = Endianness[v]
-        self._b2v = {}
+        # noinspection PyTypeChecker
+        self._b2v: dict[str, BasicTypes] = {}
         for v in BasicTypes.__members__:
             self.type_combo_box.addItem(BasicTypes[v].description, BasicTypes[v])
+            # noinspection PyTypeChecker
             self._b2v[BasicTypes[v].description] = BasicTypes[v]
         head = ('HEX', 'BASE64', 'ASCII', 'UTF-8')
         body = set(ENCODINGS)
@@ -30,20 +32,20 @@ class BasicTypeConversionDialog(QtWidgets.QDialog, Ui_basic_type_conversion_dial
         self.to_string_method_combo_box.addItems(head + tuple(body))
         _translate = QtCore.QCoreApplication.translate
         self.context_menu = QtWidgets.QMenu(self)
-        self.action_up = QtWidgets.QAction(self)
+        self.action_up = QtGui.QAction(self)
         self.action_up.setText(_translate('BasicTypeConversionDialog', '上移'))
         self.context_menu.addAction(self.action_up)
         self.action_up.triggered.connect(self._up_type)
-        self.action_down = QtWidgets.QAction(self)
+        self.action_down = QtGui.QAction(self)
         self.action_down.setText(_translate('BasicTypeConversionDialog', '下移'))
         self.context_menu.addAction(self.action_down)
         self.action_down.triggered.connect(self._down_type)
         self.context_menu.addSeparator()
-        self.action_remove = QtWidgets.QAction(self)
+        self.action_remove = QtGui.QAction(self)
         self.action_remove.setText(_translate('BasicTypeConversionDialog', '删除'))
         self.context_menu.addAction(self.action_remove)
         self.action_remove.triggered.connect(self._remove_type)
-        self.action_clear = QtWidgets.QAction(self)
+        self.action_clear = QtGui.QAction(self)
         self.action_clear.setText(_translate('BasicTypeConversionDialog', '清空'))
         self.context_menu.addAction(self.action_clear)
         self.action_clear.triggered.connect(self._clear_type)

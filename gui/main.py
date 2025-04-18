@@ -1,51 +1,51 @@
-import logging
-import os
 import sys
 
-from PyQt5 import QtWidgets
-
-from gui.common import env
-from gui.common.logger_configurer import LoggerConfigurer
-from gui.designer.impl.main_window import MainWindow
-
-__logger = logging.getLogger(__name__)
+from PyQt6 import QtWidgets, QtCore
 
 
 def main():
-    # path_pattern='./log/{name}-%Y-%m-%d{sequence}'
+    app = QtWidgets.QApplication(sys.argv)
+    splash = QtWidgets.QSplashScreen()
+    splash.showMessage('Loading...', QtCore.Qt.AlignmentFlag.AlignCenter, QtCore.Qt.GlobalColor.white)
+    splash.show()
+    from gui.common import env
+    env.app = app
+    sys.excepthook = env.crash
+    import logging
+    __logger = logging.getLogger(__name__)
+    from gui.common.logger_configurer import LoggerConfigurer
+    import os
+    log_path = os.path.join(env.PATH, 'log')
     logger_configurer = LoggerConfigurer(
         LoggerConfigurer.Config(level='DEBUG',
-                                formatter_str='[%(asctime)s] [%(threadName)s %(funcName)s/%(levelname)s]: %(message)s'))
+                                formatter_str='[%(asctime)s] [%(threadName)s %(funcName)s/%(levelname)s]: %(message)s',
+                                path_pattern=log_path + os.sep + '%Y-%m-%d-{name}.log'))
     logger_configurer.enable_console_handler(color=True)
-    __logger.debug(f'PID:{os.getpid()}')
-    code = 0
-    app = None
+    logger_configurer.enable_file_handler('app')
+    __logger.info(f'PID: {env.PID}, currentPath: {env.PATH}, workingDir: {os.getcwd()}, arguments: {sys.argv}.')
+    translator = QtCore.QTranslator()
+    locale_loaded = False
     try:
-        app = QtWidgets.QApplication(sys.argv)
-        window = MainWindow(app)
-        env.window = window
-        window.show()
-        code = app.exec_()
-    except (SystemExit, KeyboardInterrupt) as e:
-        # 静默处理
-        if e is env.main_ignore_exception:
-            raise
-        t_e_name = type(e).__name__
-        es = str(e)
-        __logger.info(f'{t_e_name}：{es}。' if es else f'{t_e_name}。')
-        raise
-    except BaseException as e:
-        # 不记录已被记录过的异常
-        if e is env.main_ignore_exception:
-            raise
-        elif app:
-            t_e_name = type(e).__name__
-            es = str(e)
-            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Critical, '应用已崩溃',
-                                  f'{t_e_name}：{os.linesep}{es}。' if es else f'{t_e_name}。').exec_()
-        # 仅能记录app.exec_()执行之前的异常
-        __logger.error(e, exc_info=True)
-        raise
+        if translator.load(f'qt_{QtCore.QLocale().system().name()}',
+                           env.find_path(os.path.join('PyQt6', 'Qt6', 'translations'), os.path.isdir)):
+            locale_loaded = True
+    except FileNotFoundError as e:
+        __logger.warning(e)
+    if locale_loaded:
+        app.installTranslator(translator)
+    from gui.designer.impl.main_window import MainWindow
+    window = MainWindow()
+    env.window = window
+    if not locale_loaded:
+        # 已解决：PyInstaller打包问题，未能包含所有translations文件
+        env.warning(f'本地化文件未能成功加载，详见日志。{os.linesep}日志目录：{log_path}。')
+    window.show()
+    window.init(app)
+    splash.finish(window)
+    splash.deleteLater()
+    code = 0
+    try:
+        code = app.exec()
     finally:
         if code:
             __logger.info(f'App exit code {code}.')
