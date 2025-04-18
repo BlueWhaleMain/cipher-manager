@@ -90,7 +90,10 @@ class CipherFile(BaseModel):
             elif isinstance(key, bytes):
                 self._key = copy_bytes(key)
         elif self.key_type == KeyType.RSA_KEYSTORE:
-            self._key = RSA.importKey(key, passphrase)
+            try:
+                self._key = RSA.importKey(key, passphrase)
+            except ValueError as e:
+                raise CmValueError from e
         else:
             raise CmNotImplementedError(f"unknown key_type: {self.key_type}")
 
@@ -143,7 +146,10 @@ class CipherFile(BaseModel):
         if self.cipher_name.padding > 0:
             data = fixed_bytes(data, self.cipher_name.padding)
         for _ in range(self.iter_count):
-            data = self._cipher().encrypt(data)
+            try:
+                data = self._cipher().encrypt(data)
+            except ValueError as e:
+                raise CmValueError from e
         return data
 
     def _decrypt(self, data: bytes) -> bytes:
@@ -151,7 +157,10 @@ class CipherFile(BaseModel):
         if self._cant_decrypt:
             raise CmRuntimeError('cannot decrypt')
         for _ in range(self.iter_count):
-            data = self._cipher().decrypt(data)
+            try:
+                data = self._cipher().decrypt(data)
+            except ValueError as e:
+                raise CmValueError from e
         return data.rstrip(b'\x00') if self.cipher_name.padding > 0 else data
 
     def _cipher(self):
