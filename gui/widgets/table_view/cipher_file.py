@@ -22,7 +22,6 @@ from gui.designer.impl.random_password_dialog import RandomPasswordDialog
 from gui.designer.impl.text_show_dialog import TextShowDialog
 
 _LOG = logging.getLogger(__name__)
-_translate = QtCore.QCoreApplication.translate
 
 
 class CipherFileTableView(QtWidgets.QTableView):
@@ -46,33 +45,33 @@ class CipherFileTableView(QtWidgets.QTableView):
         self.context_menu = QtWidgets.QMenu(self)
 
         self.action_view = QtGui.QAction(self)
-        self.action_view.setText(_translate('CipherFileTableView', '查看'))
+        self.action_view.setText(self.tr('查看'))
         self.context_menu.addAction(self.action_view)
 
         self.action_edit = QtGui.QAction(self)
-        self.action_edit.setText(_translate('CipherFileTableView', '修改'))
+        self.action_edit.setText(self.tr('修改'))
         self.context_menu.addAction(self.action_edit)
 
         self.action_decrypt_col = QtGui.QAction(self)
-        self.action_decrypt_col.setText(_translate('CipherFileTableView', '解密整列'))
+        self.action_decrypt_col.setText(self.tr('解密整列'))
         self.context_menu.addAction(self.action_decrypt_col)
 
         self.action_decrypt_row = QtGui.QAction(self)
-        self.action_decrypt_row.setText(_translate('CipherFileTableView', '解密整行'))
+        self.action_decrypt_row.setText(self.tr('解密整行'))
         self.context_menu.addAction(self.action_decrypt_row)
 
         self.action_generate = QtGui.QAction(self)
-        self.action_generate.setText(_translate('CipherFileTableView', '生成'))
+        self.action_generate.setText(self.tr('生成'))
         self.context_menu.addAction(self.action_generate)
 
         self.context_menu.addSeparator()
 
         self.action_remove_line = QtGui.QAction(self)
-        self.action_remove_line.setText(_translate('CipherFileTableView', '删除整行'))
+        self.action_remove_line.setText(self.tr('删除整行'))
         self.context_menu.addAction(self.action_remove_line)
 
         self.action_remove_colum = QtGui.QAction(self)
-        self.action_remove_colum.setText(_translate('CipherFileTableView', '删除整列'))
+        self.action_remove_colum.setText(self.tr('删除整列'))
         self.context_menu.addAction(self.action_remove_colum)
 
         self.customContextMenuRequested.connect(self.create_context_menu)
@@ -123,19 +122,19 @@ class CipherFileTableView(QtWidgets.QTableView):
 
     def new_file(self) -> None:
         if self.has_file and self._edited:
-            raise CmInterrupt('有操作未保存')
+            raise CmInterrupt(self.tr('有操作未保存'))
         self._cipher_file = self._new_cipher_file_dialog.create_file()
         self.save_file()
 
     def open_file(self, filepath: str = None) -> None:
         if not filepath:
-            filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, '选择密钥文件', self.current_dir,
-                                                                'Pickle文件(*.pkl);;所有文件(*)')
-        if not filepath:
-            return
+            filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, self.tr('选择密钥文件'), self.current_dir,
+                                                                self.tr('Pickle文件(*.pkl);;所有文件(*)'))
+            if not filepath:
+                return
         if self.has_file or self._edited:
-            result = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information, '打开', '在新窗口中打开？',
-                                           QtWidgets.QMessageBox.StandardButton.Yes
+            result = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information, self.tr('打开'),
+                                           self.tr('在新窗口中打开？'), QtWidgets.QMessageBox.StandardButton.Yes
                                            | QtWidgets.QMessageBox.StandardButton.No
                                            | QtWidgets.QMessageBox.StandardButton.Cancel, parent=self).exec()
             if result == QtWidgets.QMessageBox.StandardButton.Yes:
@@ -144,8 +143,8 @@ class CipherFileTableView(QtWidgets.QTableView):
             elif result == QtWidgets.QMessageBox.StandardButton.Cancel:
                 return
         if self.edited:
-            result = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '警告', '有修改未保存，是否丢弃？',
-                                           QtWidgets.QMessageBox.StandardButton.Yes
+            result = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, self.tr('警告'),
+                                           self.tr('有修改未保存，是否丢弃？'), QtWidgets.QMessageBox.StandardButton.Yes
                                            | QtWidgets.QMessageBox.StandardButton.No, parent=self).exec()
             if result == QtWidgets.QMessageBox.StandardButton.No:
                 return
@@ -153,14 +152,14 @@ class CipherFileTableView(QtWidgets.QTableView):
             try:
                 data = pickle.load(f)
             except Exception as e:
-                raise CmValueError('文件格式异常') from e
+                raise CmValueError(self.tr('文件格式异常')) from e
             self._cipher_file = file_load(data)
             self._filepath = filepath
         self._refresh()
 
     def import_file(self) -> None:
-        filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, '导入记录', self.current_dir,
-                                                            'CSV文件(*.csv);;所有文件(*)')
+        filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, self.tr('导入记录'), self.current_dir,
+                                                            self.tr('CSV文件(*.csv);;所有文件(*)'))
         if not filepath:
             return
         if not self._suggest_unlock():
@@ -179,9 +178,9 @@ class CipherFileTableView(QtWidgets.QTableView):
             if not self._filepath:
                 # 没有保存的路径属于新文件
                 self._ui_edit_happened()
-                self._filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, '保存密钥文件',
+                self._filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, self.tr('保存密钥文件'),
                                                                           self.current_dir,
-                                                                          'Pickle文件(*.pkl);;所有文件(*)')
+                                                                          self.tr('Pickle文件(*.pkl);;所有文件(*)'))
             filepath = self._filepath
         if not filepath:
             return
@@ -192,8 +191,8 @@ class CipherFileTableView(QtWidgets.QTableView):
         self._refresh()
 
     def move_file(self) -> None:
-        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, '重命名/移动密钥文件', self.current_dir,
-                                                            'Pickle文件(*.pkl);;所有文件(*)')
+        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, self.tr('重命名/移动密钥文件'), self.current_dir,
+                                                            self.tr('Pickle文件(*.pkl);;所有文件(*)'))
         if not filepath:
             return
         shutil.move(self._filepath, filepath)
@@ -201,8 +200,8 @@ class CipherFileTableView(QtWidgets.QTableView):
         self._refresh()
 
     def save_new_file(self) -> None:
-        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, '另存密钥文件', self.current_dir,
-                                                            'Pickle文件(*.pkl);;所有文件(*)')
+        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, self.tr('另存密钥文件'), self.current_dir,
+                                                            self.tr('Pickle文件(*.pkl);;所有文件(*)'))
         if not filepath:
             return
         with open(filepath, 'wb') as f:
@@ -213,10 +212,10 @@ class CipherFileTableView(QtWidgets.QTableView):
         self._refresh()
 
     def export_file(self) -> None:
-        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, '导出记录',
+        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, self.tr('导出记录'),
                                                             os.path.join(self.current_dir,
                                                                          os.path.splitext(self._filepath)[0] + '.csv'),
-                                                            'CSV文件(*.csv);;所有文件(*)')
+                                                            self.tr('CSV文件(*.csv);;所有文件(*)'))
         if not filepath:
             return
         if not self._suggest_unlock():
@@ -230,21 +229,23 @@ class CipherFileTableView(QtWidgets.QTableView):
         self._edit_lock = True
         try:
             protect_file = ProtectCipherFile.from_cipher_file(self._cipher_file)
-            filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, '选择要加密的文件', self.current_dir,
-                                                                '所有文件(*)')
+            filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, self.tr('选择要加密的文件'), self.current_dir,
+                                                                self.tr('所有文件(*)'))
             if not filepath:
                 return
-            dist_filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, '选择保存位置',
+            dist_filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, self.tr('选择保存位置'),
                                                                      os.path.join(self.current_dir,
                                                                                   os.path.basename(filepath)
                                                                                   + ".cm-protect"),
-                                                                     '管理器保护文件(*.cm-protect);;所有文件(*)')
+                                                                     self.tr('管理器保护文件(*.cm-protect)'
+                                                                             ';;所有文件(*)'))
             if not dist_filepath:
                 return
-            cm_progress = CmProgress(title='加密文件中')
+            cm_progress = CmProgress(title=self.tr('加密文件中'))
             execute_in_progress(self, protect_file.pack_to, filepath, dist_filepath, 2048, cm_progress,
                                 cm_progress=cm_progress)
-            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information, '提示', f'文件已加密至：{dist_filepath}',
+            QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information, self.tr('提示'),
+                                  f'{self.tr("文件已加密至：")}{dist_filepath}{self.tr("。")}',
                                   QtWidgets.QMessageBox.StandardButton.Ok, self).exec()
         finally:
             self._edit_lock = False
@@ -253,8 +254,8 @@ class CipherFileTableView(QtWidgets.QTableView):
         self_decrypt = self._suggest_unlock()
         self._edit_lock = True
         try:
-            filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, '选择要解密的文件', self.current_dir,
-                                                                '管理器保护文件(*.cm-protect);;所有文件(*)')
+            filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, self.tr('选择要解密的文件'), self.current_dir,
+                                                                self.tr('管理器保护文件(*.cm-protect);;所有文件(*)'))
             if not filepath:
                 return
         finally:
@@ -267,16 +268,17 @@ class CipherFileTableView(QtWidgets.QTableView):
         else:
             if not self._unlock_cipher_file(protect_file):
                 return
-        dist_filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, '选择保存位置',
+        dist_filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, self.tr('选择保存位置'),
                                                                  os.path.join(self.current_dir,
                                                                               protect_file.decrypt_filename()),
-                                                                 '所有文件(*)')
+                                                                 self.tr('所有文件(*)'))
         if not dist_filepath:
             return
-        cm_progress = CmProgress(title='解密文件中')
+        cm_progress = CmProgress(title=self.tr('解密文件中'))
         execute_in_progress(self, protect_file.unpack_to, dist_filepath, 2048, cm_progress,
                             cm_progress=cm_progress)
-        QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information, '提示', f'文件已解密至：{dist_filepath}',
+        QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information, self.tr('提示'),
+                              f'{self.tr("文件已解密至：")}{dist_filepath}{self.tr("。")}',
                               QtWidgets.QMessageBox.StandardButton.Ok, self).exec()
 
     def open_attribute_dialog(self) -> None:
@@ -294,8 +296,8 @@ class CipherFileTableView(QtWidgets.QTableView):
     @property
     def _cipher_file(self) -> TableRecordCipherFile:
         if not self.has_file:
-            result = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Question, '提示',
-                                           '当前没有任何加密方式，创建一个？',
+            result = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Question, self.tr('提示'),
+                                           self.tr('当前没有任何加密方式，创建一个？'),
                                            QtWidgets.QMessageBox.StandardButton.Yes
                                            | QtWidgets.QMessageBox.StandardButton.Open
                                            | QtWidgets.QMessageBox.StandardButton.Cancel).exec()
@@ -446,16 +448,17 @@ class CipherFileTableView(QtWidgets.QTableView):
 
     def _unlock_cipher_file(self, cipher_file: CipherFile) -> bool:
         if cipher_file.key_type.is_file:
-            filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, '选择包含密钥的文件', self.current_dir,
-                                                                '加密证书文件(*.pfx,*.p12,*.jks);;'
-                                                                '二进制密钥文件(*.der,*.cer);;文本密钥文件(*.pem);;'
-                                                                '私钥文件(*.key);;包含公钥的证书(*.crt);;所有文件(*)')
+            filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, self.tr('选择包含密钥的文件'), self.current_dir,
+                                                                self.tr('加密证书文件(*.pfx,*.p12,*.jks)'
+                                                                        ';;二进制密钥文件(*.der,*.cer);;文本密钥文件(*.pem)'
+                                                                        ';;私钥文件(*.key);;包含公钥的证书(*.crt)'
+                                                                        ';;所有文件(*)'))
             if not filepath:
                 return False
             with open(filepath, 'rb') as f:
                 key = f.read()
         else:
-            key = InputPasswordDialog(self).getpass('输入密码', verify=cipher_file.key_hash is None,
+            key = InputPasswordDialog(self).getpass(self.tr('输入密码'), verify=cipher_file.key_hash is None,
                                                     validator=cipher_file.validate_key)
             if key is None:
                 return False
@@ -463,12 +466,12 @@ class CipherFileTableView(QtWidgets.QTableView):
             self._ui_edit_happened()
         if cipher_file.key_type.is_file:
             if not cipher_file.validate_key(key):
-                result = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Question, '密钥文件可能不正确', '忽略并继续？',
-                                               QtWidgets.QMessageBox.StandardButton.Ignore
+                result = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Question, self.tr('密钥文件可能不正确'),
+                                               self.tr('忽略并继续？'), QtWidgets.QMessageBox.StandardButton.Ignore
                                                | QtWidgets.QMessageBox.StandardButton.Cancel).exec()
                 if result == QtWidgets.QMessageBox.StandardButton.Cancel:
                     return False
-            passphrase = InputPasswordDialog(self).getpass('输入证书密码（没有点击取消）',
+            passphrase = InputPasswordDialog(self).getpass(self.tr('输入证书密码（没有点击取消）'),
                                                            validator=self._key_passphrase_validator(key, cipher_file))
             execute_in_progress(self, cipher_file.unlock, key, passphrase)
         else:
