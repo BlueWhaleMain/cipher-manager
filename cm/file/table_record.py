@@ -51,9 +51,13 @@ class TableRecordCipherFile(CipherFile):
         self.append([self._record_value_encrypt(col) if col else b'' for col in value])
 
     def _record_value_encrypt(self, value: str) -> bytes:
+        if not value:
+            return b''
         return self._encrypt(value.encode(self.content_encoding))
 
     def _record_value_decrypt(self, value: bytes) -> str:
+        if not value:
+            return ''
         try:
             return self._decrypt(value).decode(self.content_encoding)
         except UnicodeDecodeError as e:
