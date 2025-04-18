@@ -5,7 +5,8 @@ set name=%1
 set ver=%2
 set archive_type=%3
 if not %archive_type%==release (
-    set ver=%ver%-%date:~0,4%_%date:~5,2%_%date:~8,2%-%time:~0,2%_%time:~3,2%_%time:~6,2%%archive_type%
+    rem 此处在零点时无法正常工作
+    set ver=%ver%-%archive_type%-build_%date:~0,4%_%date:~5,2%_%date:~8,2%-%time:~0,2%_%time:~3,2%_%time:~6,2%
 )
 set before=%time%
 if not "%2"=="" (
@@ -18,7 +19,7 @@ if not "%2"=="" (
 		rd /s /q %~dp0dist\%name%\.
 	)
     echo build对象：%~dp0%1
-    pyinstaller %name%.spec
+    .\.venv\Scripts\pyinstaller %name%.spec
     echo %errorlevel%
     if %errorlevel% GTR 0 goto end
     rem echo 删除不兼容的运行时库
