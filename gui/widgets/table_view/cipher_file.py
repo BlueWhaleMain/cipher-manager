@@ -5,7 +5,7 @@ import pickle
 import shutil
 
 from PyQt6 import QtWidgets, QtGui, QtCore
-from PyQt6.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QMessageBox, QProgressDialog
 
 from cm import file_load, CmValueError
 from cm.error import CmInterrupt
@@ -14,7 +14,7 @@ from cm.file.protect import ProtectCipherFile
 from cm.file.table_record import TableRecordCipherFile
 from cm.progress import CmProgress
 from gui.common.env import report_with_exception, new_instance
-from gui.common.progress import execute_in_progress
+from gui.common.progress import execute_in_progress, each_in_steps
 from gui.designer.impl.attribute_dialog import AttributeDialog
 from gui.designer.impl.input_password_dialog import InputPasswordDialog
 from gui.designer.impl.new_cipher_file_dialog import NewCipherFileDialog
@@ -335,14 +335,18 @@ class CipherFileTableView(QtWidgets.QTableView):
     def _decrypt_col(self, _):
         rows = self.model().rowCount()
         col = self.currentIndex().column()
-        for row in range(rows):
+        progress = QProgressDialog(self)
+        progress.setWindowTitle(self.tr('解密中...'))
+        for row in each_in_steps(progress, range(rows), rows):
             self._try_edit(col, row)
 
     @report_with_exception
     def _decrypt_row(self, _):
         cols = self.model().columnCount()
         row = self.currentIndex().row()
-        for col in range(cols):
+        progress = QProgressDialog(self)
+        progress.setWindowTitle(self.tr('解密中...'))
+        for col in each_in_steps(progress, range(cols), cols):
             self._try_edit(col, row)
 
     @report_with_exception

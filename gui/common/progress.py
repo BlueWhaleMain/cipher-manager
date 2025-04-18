@@ -1,8 +1,9 @@
 import os
 from datetime import timedelta
-from typing import TypeVar, Callable, ParamSpec, Generic
+from typing import TypeVar, Callable, ParamSpec, Generic, Iterable
 
 from PyQt6 import QtWidgets, QtCore, sip
+from PyQt6.QtWidgets import QProgressDialog, QApplication
 
 from cm.error import CmInterrupt
 from cm.progress import CmProgress
@@ -92,3 +93,18 @@ def execute_in_progress(self: QtWidgets.QWidget, fn: Callable[_P, _T], /, *args:
     if progress.wasCanceled():
         raise CmInterrupt
     return future.result()
+
+
+def each_in_steps(progress: QProgressDialog, steps: Iterable[_T], total: int = 0) -> Iterable[_T]:
+    progress.setRange(0, total)
+    progress.setValue(0)
+    progress.show()
+    for step in steps:
+        yield step
+        value = progress.value()
+        progress.setValue(value + 1)
+        progress.setLabelText(f'{value} / {total}')
+        QApplication.processEvents()
+        if progress.wasCanceled():
+            break
+    progress.accept()
