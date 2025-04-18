@@ -4,6 +4,7 @@ import sys
 import Crypto.Cipher.AES
 import Crypto.Cipher.DES
 from PyQt6 import QtWidgets, QtCore
+from PyQt6.QtWidgets import QMessageBox
 
 from cm.error import CmInterrupt
 from cm.file.base import CipherName, HashName, KeyType
@@ -189,6 +190,16 @@ class NewCipherFileDialog(QtWidgets.QDialog, Ui_NewCipherFileDialog):
                                              password_salt_len=self.password_salt_len_spin_box.value(),
                                              cipher_args=dict(mode=aes_mode, iv=os.urandom(16)))
             elif mode == 2:
+                iter_count = self.iter_count_spin_box.value()
+                if iter_count > 1:
+                    button = QMessageBox(QMessageBox.Icon.Question,
+                                         _translate('NewCipherFileDialog', '提示'),
+                                         _translate('NewCipherFileDialog',
+                                                    '非对称加密使用超过1的迭代次数极可能导致加密失败。'),
+                                         QMessageBox.StandardButton.Ignore | QMessageBox.StandardButton.Cancel,
+                                         parent=self).exec()
+                    if button == QMessageBox.StandardButton.Cancel:
+                        raise CmInterrupt
                 return TableRecordCipherFile(content_encoding=self.encoding_combo_box.currentText(),
                                              cipher_name=self.pkcs1_subtype_combo_box.currentData(),
                                              iter_count=self.iter_count_spin_box.value(),
