@@ -5,6 +5,7 @@ import pickle
 import shutil
 
 from PyQt6 import QtWidgets, QtGui, QtCore
+from PyQt6.QtWidgets import QMessageBox
 
 from cm import file_load, CmValueError
 from cm.error import CmInterrupt
@@ -354,6 +355,10 @@ class CipherFileTableView(QtWidgets.QTableView):
         row = self.currentIndex().row()
         if row >= self.model().rowCount() - 1:
             return
+        button = QMessageBox.warning(self, self.tr('你确定吗？'), self.tr('将删除整行。'),
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if button == QMessageBox.StandardButton.No:
+            return
         self._cipher_file.records.pop(row)
         self.model().removeRow(row)
         self._ui_edit_happened()
@@ -362,6 +367,10 @@ class CipherFileTableView(QtWidgets.QTableView):
     def _remove_col(self, _):
         col = self.currentIndex().column()
         if col >= self.model().columnCount() - 1:
+            return
+        button = QMessageBox.warning(self, self.tr('你确定吗？'), self.tr('将删除整列。'),
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if button == QMessageBox.StandardButton.No:
             return
         for record in self._cipher_file.records:
             if len(record) > col:
