@@ -55,6 +55,7 @@ def execute_in_progress(self: QtWidgets.QWidget, fn: Callable[_P, _T], /, *args:
         thread.done.connect(progress.accept)
         progress.setWindowTitle('请等待')
         progress.setRange(0, 0)
+        QApplication.processEvents()
         progress.exec()
         if progress.wasCanceled():
             raise CmInterrupt
