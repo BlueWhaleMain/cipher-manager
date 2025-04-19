@@ -35,6 +35,7 @@ class CipherFileTableView(QtWidgets.QTableView):
         self._filepath: str | None = None
         self._edit_lock: bool = False
         self._edited: bool = False
+        self._ignore_auto_lock: bool = False
         self._new_cipher_file_dialog: NewCipherFileDialog = NewCipherFileDialog(self)
         self._attribute_dialog: AttributeDialog = AttributeDialog(self)
         self._text_show_dialog: TextShowDialog = TextShowDialog(self)
@@ -229,7 +230,7 @@ class CipherFileTableView(QtWidgets.QTableView):
     def encrypt_file(self) -> None:
         if not self._suggest_unlock():
             return
-        self._edit_lock = True
+        self._ignore_auto_lock = True
         try:
             protect_file = ProtectCipherFile.from_cipher_file(self._cipher_file)
             filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, self.tr('选择要加密的文件'), self.current_dir,
@@ -251,18 +252,18 @@ class CipherFileTableView(QtWidgets.QTableView):
                                   f'{self.tr("文件已加密至：")}{dist_filepath}{self.tr("。")}',
                                   QtWidgets.QMessageBox.StandardButton.Ok, self).exec()
         finally:
-            self._edit_lock = False
+            self._ignore_auto_lock = False
 
     def decrypt_file(self) -> None:
         self_decrypt = self._suggest_unlock()
-        self._edit_lock = True
+        self._ignore_auto_lock = True
         try:
             filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, self.tr('选择要解密的文件'), self.current_dir,
                                                                 self.tr('管理器保护文件(*.cm-protect);;所有文件(*)'))
             if not filepath:
                 return
         finally:
-            self._edit_lock = False
+            self._ignore_auto_lock = False
         protect_file = ProtectCipherFile.from_protect_file(filepath)
         if self_decrypt:
             if not protect_file.try_unlock_from_cipher_file(self._cipher_file):
@@ -288,7 +289,7 @@ class CipherFileTableView(QtWidgets.QTableView):
         self._attribute_dialog.load_file(self._cipher_file)
 
     def lock(self):
-        if self._edit_lock:
+        if self._ignore_auto_lock:
             return
         if self.has_file:
             cipher_file = self._cipher_file
@@ -339,19 +340,30 @@ class CipherFileTableView(QtWidgets.QTableView):
         cols = self.model().columnCount()
         row = self.currentIndex().row()
         progress = QProgressDialog(self)
-        progress.setWindowTitle(self.tr('解密中...'))
-        for col in each_in_steps(progress, range(cols), cols):
-            self._try_edit(col, row)
+        progress.setWindowTitle(self.tr('解密第{}行...').format(row + 1))
+        try:
+            self._ignore_auto_lock = True
+            for col in each_in_steps(progress, range(cols), cols):
+                if not self._try_edit(col, row):
+                    progress.cancel()
+        finally:
+            self._ignore_auto_lock = False
 
     @report_with_exception
     def _decrypt_col(self, _):
         rows = self.model().rowCount()
         col = self.currentIndex().column()
         progress = QProgressDialog(self)
-        progress.setWindowTitle(self.tr('解密中...'))
-        for row in each_in_steps(progress, range(rows), rows):
-            self._try_edit(col, row)
-        self.resizeColumnToContents(col)
+        progress.setWindowTitle(self.tr('解密第{}列...').format(col + 1))
+        try:
+            self._ignore_auto_lock = True
+            for row in each_in_steps(progress, range(rows), rows):
+                if not self._try_edit(col, row):
+                    progress.cancel()
+        finally:
+            self._ignore_auto_lock = False
+        if not progress.wasCanceled():
+            self.resizeColumnToContents(col)
 
     @report_with_exception
     def _generate_item(self, _):
@@ -418,13 +430,14 @@ class CipherFileTableView(QtWidgets.QTableView):
         self._try_edit(col, row)
         self.model().item(col, row).setText(val)
 
-    def _try_edit(self, col: int, row: int):
+    def _try_edit(self, col: int, row: int) -> bool:
         item = self._get_cell(row, col)
         if item.isEditable():
-            return
+            return True
         if not self._suggest_unlock():
-            return
+            return False
         self._edit_lock = True
+        result = False
         try:
             # 重新获得QStandardItem对象，规避C对象被回收的异常
             # 若问题已解决，请移除此行代码
@@ -437,8 +450,10 @@ class CipherFileTableView(QtWidgets.QTableView):
                 # 有概率造成闪退，无法捕获异常
                 item.setText(value)
             item.setEditable(True)
+            result = True
         finally:
             self._edit_lock = False
+            return result
 
     def _suggest_unlock(self) -> bool:
         try:
@@ -452,7 +467,10 @@ class CipherFileTableView(QtWidgets.QTableView):
 
     def _unlock(self) -> bool:
         cipher_file = self._cipher_file
-        return self._unlock_cipher_file(cipher_file)
+        if self._unlock_cipher_file(cipher_file):
+            self._refresh()
+            return True
+        return False
 
     def _unlock_cipher_file(self, cipher_file: CipherFile) -> bool:
         if cipher_file.key_type.is_file:
