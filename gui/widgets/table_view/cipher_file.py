@@ -453,10 +453,12 @@ class CipherFileTableView(QtWidgets.QTableView):
     def _unlock_cipher_file(self, cipher_file: CipherFile) -> bool:
         if cipher_file.key_type.is_file:
             filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, self.tr('选择包含密钥的文件'), self.current_dir,
-                                                                self.tr('加密证书文件(*.pfx,*.p12,*.jks)'
-                                                                        ';;二进制密钥文件(*.der,*.cer);;文本密钥文件(*.pem)'
-                                                                        ';;私钥文件(*.key);;包含公钥的证书(*.crt)'
-                                                                        ';;所有文件(*)'))
+                                                                self.tr('所有文件(*)'
+                                                                        ';;加密证书文件(*.pfx *.p12 *.jks)'
+                                                                        ';;二进制密钥文件(*.der *.cer *.cert)'
+                                                                        ';;文本密钥文件(*.pem *.asc)'
+                                                                        ';;私钥文件(*.key)'
+                                                                        ';;包含公钥的证书(*.crt *.p7c)'))
             if not filepath:
                 return False
             with open(filepath, 'rb') as f:
