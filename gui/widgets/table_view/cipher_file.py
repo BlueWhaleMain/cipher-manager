@@ -53,17 +53,19 @@ class CipherFileTableView(QtWidgets.QTableView):
         self.action_edit.setText(self.tr('修改'))
         self.context_menu.addAction(self.action_edit)
 
-        self.action_decrypt_col = QtGui.QAction(self)
-        self.action_decrypt_col.setText(self.tr('解密整列'))
-        self.context_menu.addAction(self.action_decrypt_col)
+        self.action_generate = QtGui.QAction(self)
+        self.action_generate.setText(self.tr('生成'))
+        self.context_menu.addAction(self.action_generate)
+
+        self.context_menu.addSeparator()
 
         self.action_decrypt_row = QtGui.QAction(self)
         self.action_decrypt_row.setText(self.tr('解密整行'))
         self.context_menu.addAction(self.action_decrypt_row)
 
-        self.action_generate = QtGui.QAction(self)
-        self.action_generate.setText(self.tr('生成'))
-        self.context_menu.addAction(self.action_generate)
+        self.action_decrypt_col = QtGui.QAction(self)
+        self.action_decrypt_col.setText(self.tr('解密整列'))
+        self.context_menu.addAction(self.action_decrypt_col)
 
         self.context_menu.addSeparator()
 
@@ -80,8 +82,8 @@ class CipherFileTableView(QtWidgets.QTableView):
 
         self.action_view.triggered.connect(self._view_item)
         self.action_edit.triggered.connect(self._edit_item)
-        self.action_decrypt_col.triggered.connect(self._decrypt_col)
         self.action_decrypt_row.triggered.connect(self._decrypt_row)
+        self.action_decrypt_col.triggered.connect(self._decrypt_col)
         self.action_generate.triggered.connect(self._generate_item)
         self.action_remove_line.triggered.connect(self._remove_row)
         self.action_remove_colum.triggered.connect(self._remove_col)
@@ -333,6 +335,15 @@ class CipherFileTableView(QtWidgets.QTableView):
                                                           True))
 
     @report_with_exception
+    def _decrypt_row(self, _):
+        cols = self.model().columnCount()
+        row = self.currentIndex().row()
+        progress = QProgressDialog(self)
+        progress.setWindowTitle(self.tr('解密中...'))
+        for col in each_in_steps(progress, range(cols), cols):
+            self._try_edit(col, row)
+
+    @report_with_exception
     def _decrypt_col(self, _):
         rows = self.model().rowCount()
         col = self.currentIndex().column()
@@ -341,15 +352,6 @@ class CipherFileTableView(QtWidgets.QTableView):
         for row in each_in_steps(progress, range(rows), rows):
             self._try_edit(col, row)
         self.resizeColumnToContents(col)
-
-    @report_with_exception
-    def _decrypt_row(self, _):
-        cols = self.model().columnCount()
-        row = self.currentIndex().row()
-        progress = QProgressDialog(self)
-        progress.setWindowTitle(self.tr('解密中...'))
-        for col in each_in_steps(progress, range(cols), cols):
-            self._try_edit(col, row)
 
     @report_with_exception
     def _generate_item(self, _):
