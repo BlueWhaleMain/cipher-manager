@@ -51,7 +51,7 @@ def message(icon: QtWidgets.QMessageBox.Icon, title: str = None, text: str = Non
             parent=window, *args, max_len: int = 255, **kwargs):
     if parent is None:
         if window is None:
-            raise RuntimeError
+            raise RuntimeError('cannot create QMessageBox instance')
         parent = window
     return QtWidgets.QMessageBox(icon, title, text if len(text) < max_len else text[:max_len] + '...', buttons, parent,
                                  *args, **kwargs).exec()

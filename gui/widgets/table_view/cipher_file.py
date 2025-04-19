@@ -1,4 +1,5 @@
 import csv
+import functools
 import logging
 import os
 import pickle
@@ -487,6 +488,7 @@ class CipherFileTableView(QtWidgets.QTableView):
 
     @classmethod
     def _key_passphrase_validator(cls, key: bytes, cipher_file: CipherFile):
+        @functools.wraps(cipher_file.unlock)
         def wrapper(passphrase: str) -> bool:
             try:
                 cipher_file.unlock(key, passphrase)

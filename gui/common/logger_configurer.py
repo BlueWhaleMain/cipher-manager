@@ -55,7 +55,7 @@ class LoggerConfigurer:
     def enable_file_handler(self, name: str) -> logging.FileHandler:
         """ 启动文件输出 """
         if not self._cfg.path_pattern:
-            raise RuntimeError
+            raise RuntimeError('must set path_pattern')
         filename = datetime.datetime.now().strftime(self._cfg.path_pattern).format(name=name)
         dirname = os.path.dirname(filename)
         if not os.path.exists(dirname):
