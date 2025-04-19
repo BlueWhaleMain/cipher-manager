@@ -67,6 +67,8 @@
      <addaction name="action_sort_asc"/>
      <addaction name="action_sort_desc"/>
     </widget>
+    <addaction name="action_decrypt_all"/>
+    <addaction name="action_reload"/>
     <addaction name="menu"/>
    </widget>
    <widget class="QMenu" name="menu_search">
@@ -79,10 +81,10 @@
     <property name="title">
      <string>工具(&amp;O)</string>
     </property>
+    <addaction name="action_otp"/>
     <addaction name="action_hash_tools"/>
     <addaction name="action_random_password"/>
     <addaction name="action_basic_type_conversion"/>
-    <addaction name="action_otp"/>
    </widget>
    <widget class="QMenu" name="menu_view">
     <property name="title">
@@ -98,6 +100,7 @@
      <string>?</string>
     </property>
     <addaction name="action_about"/>
+    <addaction name="action_github"/>
    </widget>
    <addaction name="menu_file"/>
    <addaction name="menu_edit"/>
@@ -108,6 +111,10 @@
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="action_new">
+   <property name="icon">
+    <iconset theme="document-new">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
    <property name="text">
     <string>新建(&amp;N)</string>
    </property>
@@ -119,6 +126,10 @@
    </property>
   </action>
   <action name="action_open">
+   <property name="icon">
+    <iconset theme="document-open">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
    <property name="text">
     <string>打开(&amp;O)</string>
    </property>
@@ -130,6 +141,13 @@
    </property>
   </action>
   <action name="action_attribute">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="document-properties">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
    <property name="text">
     <string>属性(&amp;A)</string>
    </property>
@@ -138,6 +156,10 @@
    </property>
   </action>
   <action name="action_exit">
+   <property name="icon">
+    <iconset theme="application-exit">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
    <property name="text">
     <string>退出(&amp;X)</string>
    </property>
@@ -146,6 +168,13 @@
    </property>
   </action>
   <action name="action_export">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="x-office-spreadsheet">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
    <property name="text">
     <string>导出(&amp;E)</string>
    </property>
@@ -154,6 +183,13 @@
    </property>
   </action>
   <action name="action_save">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="document-save">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
    <property name="text">
     <string>保存(&amp;S)</string>
    </property>
@@ -165,24 +201,54 @@
    </property>
   </action>
   <action name="action_sort_asc">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="view-sort-ascending">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
    <property name="text">
     <string>升序排序</string>
+   </property>
+   <property name="toolTip">
+    <string>尚未实现</string>
    </property>
    <property name="statusTip">
     <string>升序排序</string>
    </property>
   </action>
   <action name="action_sort_desc">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="view-sort-descending">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
    <property name="text">
     <string>降序排序</string>
+   </property>
+   <property name="toolTip">
+    <string>尚未实现</string>
    </property>
    <property name="statusTip">
     <string>降序排序</string>
    </property>
   </action>
   <action name="action_search">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="edit-find">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
    <property name="text">
     <string>查找(&amp;F)</string>
+   </property>
+   <property name="toolTip">
+    <string>尚未实现</string>
    </property>
    <property name="statusTip">
     <string>查找（F）</string>
@@ -192,22 +258,23 @@
    </property>
   </action>
   <action name="action_hash_tools">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>哈希工具</string>
    </property>
-   <property name="statusTip">
-    <string>哈希工具</string>
-   </property>
-  </action>
-  <action name="action_encrypt_test">
-   <property name="text">
-    <string>PEM加密算法测试</string>
+   <property name="toolTip">
+    <string>尚未实现</string>
    </property>
    <property name="statusTip">
-    <string>加密算法测试</string>
+    <string/>
    </property>
   </action>
   <action name="action_import">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>导入(&amp;I)</string>
    </property>
@@ -263,6 +330,10 @@
    </property>
   </action>
   <action name="action_about">
+   <property name="icon">
+    <iconset theme="help-about">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
    <property name="text">
     <string>关于 CipherMangerGUI</string>
    </property>
@@ -279,11 +350,25 @@
    </property>
   </action>
   <action name="action_ren">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="folder-drag-accept">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
    <property name="text">
     <string>重命名/移动</string>
    </property>
   </action>
   <action name="action_save_new">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="document-save-as">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
    <property name="text">
     <string>另存为</string>
    </property>
@@ -297,13 +382,65 @@
    <property name="enabled">
     <bool>false</bool>
    </property>
+   <property name="icon">
+    <iconset theme="security-high">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
    <property name="text">
     <string>加密文件</string>
    </property>
   </action>
   <action name="action_decrypt_file">
+   <property name="icon">
+    <iconset theme="security-low">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
    <property name="text">
     <string>解密文件</string>
+   </property>
+  </action>
+  <action name="action_reload">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="view-refresh">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>重新加载</string>
+   </property>
+   <property name="toolTip">
+    <string>重新加载文件中的内容</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
+   </property>
+  </action>
+  <action name="action_decrypt_all">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>解密全部</string>
+   </property>
+   <property name="toolTip">
+    <string>解密所有单元格</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
+   </property>
+  </action>
+  <action name="action_github">
+   <property name="icon">
+    <iconset theme="network-server">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>GitHub</string>
+   </property>
+   <property name="toolTip">
+    <string>前往GitHub仓库首页</string>
    </property>
   </action>
  </widget>

@@ -26,7 +26,7 @@ _LOG = logging.getLogger(__name__)
 
 
 class CipherFileTableView(QtWidgets.QTableView):
-    refreshed = QtCore.pyqtSignal()
+    refreshed = QtCore.pyqtSignal(bool)
 
     def __init__(self, parent: QtWidgets.QWidget):
         super().__init__(parent)
@@ -70,11 +70,14 @@ class CipherFileTableView(QtWidgets.QTableView):
 
         self.context_menu.addSeparator()
 
+        icon = QtGui.QIcon.fromTheme("edit-delete")
         self.action_remove_line = QtGui.QAction(self)
+        self.action_remove_line.setIcon(icon)
         self.action_remove_line.setText(self.tr('删除整行'))
         self.context_menu.addAction(self.action_remove_line)
 
         self.action_remove_colum = QtGui.QAction(self)
+        self.action_remove_colum.setIcon(icon)
         self.action_remove_colum.setText(self.tr('删除整列'))
         self.context_menu.addAction(self.action_remove_colum)
 
@@ -123,6 +126,10 @@ class CipherFileTableView(QtWidgets.QTableView):
     @property
     def has_file(self) -> bool:
         return self.__cipher_file is not None
+
+    @property
+    def locked(self) -> bool | None:
+        return None if self.__cipher_file is None else self.__cipher_file.locked
 
     def new_file(self) -> None:
         if self.has_file and self._edited:
@@ -284,6 +291,27 @@ class CipherFileTableView(QtWidgets.QTableView):
         QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information, self.tr('提示'),
                               f'{self.tr("文件已解密至：")}{dist_filepath}{self.tr("。")}',
                               QtWidgets.QMessageBox.StandardButton.Ok, self).exec()
+
+    def decrypt_all(self):
+        cols = self.model().columnCount()
+        rows = self.model().rowCount()
+        progress = QProgressDialog(self)
+        progress.setWindowTitle(self.tr('解密中...'))
+        try:
+            self._ignore_auto_lock = True
+            for row in each_in_steps(progress, range(rows), rows):
+                sub_progress = QProgressDialog(progress)
+                sub_progress.setWindowTitle(self.tr('解密第{}行...').format(row + 1))
+                for col in each_in_steps(sub_progress, range(cols), cols):
+                    if not self._try_edit(col, row):
+                        sub_progress.cancel()
+                if sub_progress.wasCanceled():
+                    progress.cancel()
+        finally:
+            self._ignore_auto_lock = False
+
+    def reload(self):
+        self._refresh(True)
 
     def open_attribute_dialog(self) -> None:
         self._attribute_dialog.load_file(self._cipher_file)
@@ -549,7 +577,7 @@ class CipherFileTableView(QtWidgets.QTableView):
         self.action_decrypt_col.setEnabled(model.columnCount() > 1)
         self.action_remove_line.setEnabled(model.rowCount() > 1)
         self.action_remove_colum.setEnabled(model.columnCount() > 1)
-        self.refreshed.emit()
+        self.refreshed.emit(reload)
 
     def _get_cell(self, row: int, col: int) -> QtGui.QStandardItem:
         model = self.model()
