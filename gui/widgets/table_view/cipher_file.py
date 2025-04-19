@@ -511,12 +511,8 @@ class CipherFileTableView(QtWidgets.QTableView):
     def _key_passphrase_validator(cls, key: bytes, cipher_file: CipherFile):
         @functools.wraps(cipher_file.unlock)
         def wrapper(passphrase: str) -> bool:
-            try:
-                cipher_file.unlock(key, passphrase)
-                return True
-            except ValueError as e:
-                _LOG.warning(e)
-                return False
+            cipher_file.unlock(key, passphrase)
+            return True
 
         return wrapper
 
