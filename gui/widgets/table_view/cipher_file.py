@@ -339,6 +339,7 @@ class CipherFileTableView(QtWidgets.QTableView):
         progress.setWindowTitle(self.tr('解密中...'))
         for row in each_in_steps(progress, range(rows), rows):
             self._try_edit(col, row)
+        self.resizeColumnToContents(col)
 
     @report_with_exception
     def _decrypt_row(self, _):
@@ -521,6 +522,7 @@ class CipherFileTableView(QtWidgets.QTableView):
                         model.setItem(row, col, self._make_cell(cipher_file.records[row][col].hex()))
             model.setColumnCount(model.columnCount() + 1)
             model.setRowCount(model.rowCount() + 1)
+            self._get_cell(0, 0).setEditable(False)
             self.resizeColumnsToContents()
             for col in range(model.columnCount()):
                 self.setColumnWidth(col, min(self.columnWidth(col), 255))
