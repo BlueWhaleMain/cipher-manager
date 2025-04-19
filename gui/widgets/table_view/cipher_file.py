@@ -476,7 +476,6 @@ class CipherFileTableView(QtWidgets.QTableView):
         if cipher_file.key_type.is_file:
             filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, self.tr('选择包含密钥的文件'), self.current_dir,
                                                                 self.tr('所有文件(*)'
-                                                                        ';;加密证书文件(*.pfx *.p12 *.jks)'
                                                                         ';;二进制密钥文件(*.der *.cer *.cert)'
                                                                         ';;文本密钥文件(*.pem *.asc)'
                                                                         ';;私钥文件(*.key)'
