@@ -500,6 +500,8 @@ class CipherFileTableView(QtWidgets.QTableView):
                     return False
             passphrase = InputPasswordDialog(self).getpass(self.tr('输入证书密码（没有点击取消）'),
                                                            validator=self._key_passphrase_validator(key, cipher_file))
+            if passphrase is None:
+                return False
             execute_in_progress(self, cipher_file.unlock, key, passphrase)
         else:
             cipher_file.unlock(key)
