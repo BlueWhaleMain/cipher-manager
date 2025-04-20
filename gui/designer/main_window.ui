@@ -93,6 +93,8 @@
     <addaction name="action_stay_on_top"/>
     <addaction name="action_notes_mode"/>
     <addaction name="separator"/>
+    <addaction name="action_resize_column"/>
+    <addaction name="separator"/>
     <addaction name="action_auto_lock"/>
    </widget>
    <widget class="QMenu" name="menu_help">
@@ -441,6 +443,20 @@
    </property>
    <property name="toolTip">
     <string>前往GitHub仓库首页</string>
+   </property>
+  </action>
+  <action name="action_resize_column">
+   <property name="text">
+    <string>一键调整列宽</string>
+   </property>
+   <property name="statusTip">
+    <string>一键调整列宽至合适大小</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+\</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
    </property>
   </action>
  </widget>

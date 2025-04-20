@@ -81,6 +81,12 @@ class CipherFileTableView(QtWidgets.QTableView):
         self.action_remove_colum.setText(self.tr('删除整列'))
         self.context_menu.addAction(self.action_remove_colum)
 
+        self.context_menu.addSeparator()
+
+        self.action_resize_colum = QtGui.QAction(self)
+        self.action_resize_colum.setText(self.tr('调整列宽'))
+        self.context_menu.addAction(self.action_resize_colum)
+
         self.customContextMenuRequested.connect(self.create_context_menu)
         self.doubleClicked.connect(self._double_click)
 
@@ -91,6 +97,7 @@ class CipherFileTableView(QtWidgets.QTableView):
         self.action_generate.triggered.connect(self._generate_item)
         self.action_remove_line.triggered.connect(self._remove_row)
         self.action_remove_colum.triggered.connect(self._remove_col)
+        self.action_resize_colum.triggered.connect(self._resize_col)
 
         self.setAcceptDrops(True)
 
@@ -427,6 +434,13 @@ class CipherFileTableView(QtWidgets.QTableView):
                 record.pop(col)
         self.model().removeColumn(col)
         self._ui_edit_happened()
+
+    @report_with_exception
+    def _resize_col(self, _):
+        col = self.currentIndex().column()
+        if col >= self.model().columnCount() - 1:
+            return
+        self.resizeColumnToContents(col)
 
     @report_with_exception
     def _double_click(self, index: QtCore.QModelIndex):

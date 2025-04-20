@@ -51,14 +51,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.action_search.triggered.connect(self._search)
 
+        self.action_stay_on_top.triggered.connect(self._stay_on_top)
+        self.action_notes_mode.triggered.connect(self._notes_mode)
+        self.action_resize_column.triggered.connect(self._resize_column)
+        self.action_auto_lock.triggered.connect(self._refresh)
+
+        self.action_otp.triggered.connect(self._otp)
         self.action_hash_tools.triggered.connect(self._hash_tools)
         self.action_random_password.triggered.connect(self._random_password)
         self.action_basic_type_conversion.triggered.connect(self._basic_type_conversion)
-        self.action_otp.triggered.connect(self._otp)
-
-        self.action_stay_on_top.triggered.connect(self._stay_on_top)
-        self.action_notes_mode.triggered.connect(self._notes_mode)
-        self.action_auto_lock.triggered.connect(self._refresh)
 
         self.action_about.triggered.connect(self._about)
         self.action_github.triggered.connect(self._open_github)
@@ -185,6 +186,24 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         raise CmNotImplementedError
 
     @report_with_exception
+    def _stay_on_top(self, selected):
+        self.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, selected)
+        self.show()
+
+    @report_with_exception
+    def _notes_mode(self, selected):
+        self._notes_mode_(selected)
+
+    @report_with_exception
+    def _resize_column(self, _):
+        self._table_view.resizeColumnsToContents()
+
+    @report_with_exception
+    def _otp(self, _):
+        self._otp_dialog.show()
+        self._otp_dialog.activateWindow()
+
+    @report_with_exception
     def _hash_tools(self, _):
         raise CmNotImplementedError
 
@@ -197,20 +216,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def _basic_type_conversion(self, _):
         self._basic_type_conversion_dialog.show()
         self._basic_type_conversion_dialog.activateWindow()
-
-    @report_with_exception
-    def _otp(self, _):
-        self._otp_dialog.show()
-        self._otp_dialog.activateWindow()
-
-    @report_with_exception
-    def _stay_on_top(self, selected):
-        self.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, selected)
-        self.show()
-
-    @report_with_exception
-    def _notes_mode(self, selected):
-        self._notes_mode_(selected)
 
     @report_with_exception
     def _about(self, _):
@@ -267,3 +272,5 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.action_sort_desc.setEnabled(has_file)
 
         self.action_search.setEnabled(has_file)
+
+        self.action_resize_column.setEnabled(has_file)
