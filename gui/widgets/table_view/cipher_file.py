@@ -501,7 +501,7 @@ class CipherFileTableView(QtWidgets.QTableView):
         return False
 
     def _unlock_cipher_file(self, cipher_file: CipherFile) -> bool:
-        if cipher_file.key_type.is_file:
+        while cipher_file.key_type.is_file:
             filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, self.tr('选择包含密钥的文件'), self.current_dir,
                                                                 self.tr('所有文件(*)'
                                                                         ';;二进制密钥文件(*.der *.cer *.cert)'
@@ -512,26 +512,28 @@ class CipherFileTableView(QtWidgets.QTableView):
                 return False
             with open(filepath, 'rb') as f:
                 key = f.read()
-        else:
-            key = InputPasswordDialog(self).getpass(self.tr('输入密码'), verify=cipher_file.key_hash is None,
-                                                    validator=cipher_file.validate_key)
-            if key is None:
-                return False
-        if cipher_file.set_key(key):
-            self._ui_edit_happened()
-        if cipher_file.key_type.is_file:
+            if cipher_file.set_key(key):
+                self._ui_edit_happened()
             if not cipher_file.validate_key(key):
-                result = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Question, self.tr('密钥文件可能不正确'),
-                                               self.tr('忽略并继续？'), QtWidgets.QMessageBox.StandardButton.Ignore
-                                               | QtWidgets.QMessageBox.StandardButton.Cancel).exec()
-                if result == QtWidgets.QMessageBox.StandardButton.Cancel:
+                result = QMessageBox.question(self, self.tr('密钥文件可能不正确'), self.tr('忽略并继续？'),
+                                              QMessageBox.StandardButton.Retry | QMessageBox.StandardButton.Ignore
+                                              | QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Retry)
+                if result == QMessageBox.StandardButton.Retry:
+                    continue
+                if result == QMessageBox.StandardButton.Cancel:
                     return False
-            passphrase = InputPasswordDialog(self).getpass(self.tr('输入证书密码（没有点击取消）'),
+            passphrase = InputPasswordDialog(self).getpass(self.tr('输入文件密码（没有点击取消）'),
                                                            validator=self._key_passphrase_validator(key, cipher_file))
             if passphrase is None:
                 return False
-        else:
-            cipher_file.unlock(key)
+            return True
+        key = InputPasswordDialog(self).getpass(self.tr('输入密码'), verify=cipher_file.key_hash is None,
+                                                validator=cipher_file.validate_key)
+        if key is None:
+            return False
+        if cipher_file.set_key(key):
+            self._ui_edit_happened()
+        cipher_file.unlock(key)
         return True
 
     def _key_passphrase_validator(self, key: bytes, cipher_file: CipherFile):
