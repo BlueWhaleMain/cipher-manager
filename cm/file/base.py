@@ -1,5 +1,6 @@
 from enum import StrEnum
-from typing import Any, BinaryIO, Generator, AnyStr
+from tempfile import TemporaryFile
+from typing import Any, BinaryIO, AnyStr, Iterable
 
 import Crypto.Util
 from Crypto.Cipher import DES, DES3, AES, PKCS1_OAEP, PKCS1_v1_5
@@ -11,6 +12,8 @@ from pydantic import BaseModel
 from cm import CmValueError
 from cm.base import erase, fixed_bytes, copy_bytes
 from cm.error import CmNotImplementedError, CmRuntimeError
+from cm.progress import CmProgress
+from common.file import filesize_convert
 
 
 class CipherName(StrEnum):
@@ -120,23 +123,81 @@ class CipherFile(BaseModel):
             return self.key_hash is None
         return self.key_hash == self._gen_key_hash(key)
 
-    def encrypt_stream(self, stream: BinaryIO, chunk_size: int) -> Generator[bytes, None, None]:
-        cipher = self._cipher()
+    def encrypt_stream(self, stream: BinaryIO, chunk_size: int, progress: CmProgress,
+                       total: int = 0) -> Iterable[bytes]:
         if 0 < self._max_crypt_len < chunk_size:
             raise CmValueError('chunk_size too large')
+        raw_stream = stream
+        if self.iter_count > 1:
+            iter_count = self.iter_count - 1
+            iter_progress = progress.start_or_sub(iter_count)
+            for i in range(iter_count):
+                temp_stream = TemporaryFile('w+b')
+                encrypt_progress = iter_progress.start_or_sub(total // chunk_size,
+                                                              f'加密迭代中，还剩{iter_count - i}步',
+                                                              unit=f'区块（{chunk_size}字节）')
+                current_size = 0
+                cipher = self._cipher()
+                while chunk := stream.read(chunk_size):
+                    if self.cipher_name.padding > 0:
+                        chunk = fixed_bytes(chunk, self.cipher_name.padding)
+                    current_size += len(chunk)
+                    temp_stream.write(cipher.encrypt(chunk))
+                    encrypt_progress.step(last_msg=f'加密中...{filesize_convert(current_size)}'
+                                                   f' / {filesize_convert(total)}')
+                encrypt_progress.complete()
+                if stream != raw_stream:
+                    stream.close()
+                stream = temp_stream
+                stream.seek(0)
+                iter_progress.step()
+            iter_progress.complete()
+        cipher = self._cipher()
         while chunk := stream.read(chunk_size):
             if self.cipher_name.padding > 0:
                 chunk = fixed_bytes(chunk, self.cipher_name.padding)
             yield cipher.encrypt(chunk)
+        if stream != raw_stream:
+            stream.close()
 
-    def decrypt_stream(self, stream: BinaryIO, chunk_size: int) -> Generator[bytes, None, None]:
-        cipher = self._cipher()
+    def decrypt_stream(self, stream: BinaryIO, chunk_size: int, progress: CmProgress,
+                       total: int = 0) -> Iterable[bytes]:
         if self._cant_decrypt:
             raise CmRuntimeError('cannot decrypt')
+        if 0 < self._decrypt_len < chunk_size:
+            raise CmValueError('chunk_size too large')
+        raw_stream = stream
+        if self.iter_count > 1:
+            iter_count = self.iter_count - 1
+            iter_progress = progress.start_or_sub(iter_count)
+            for i in range(iter_count):
+                temp_stream = TemporaryFile('w+b')
+                decrypt_progress = iter_progress.start_or_sub(total // chunk_size,
+                                                              f'解密迭代中，还剩{iter_count - i}步',
+                                                              unit=f'区块（{chunk_size}字节）')
+                current_size = 0
+                cipher = self._cipher()
+                while chunk := stream.read(chunk_size):
+                    if self.cipher_name.padding > 0:
+                        chunk = fixed_bytes(chunk, self.cipher_name.padding)
+                    current_size += len(chunk)
+                    temp_stream.write(cipher.decrypt(chunk))
+                    decrypt_progress.step(last_msg=f'解密中...{filesize_convert(current_size)}'
+                                                   f' / {filesize_convert(total)}')
+                decrypt_progress.complete()
+                if stream != raw_stream:
+                    stream.close()
+                stream = temp_stream
+                stream.seek(0)
+                iter_progress.step()
+            iter_progress.complete()
+        cipher = self._cipher()
         while chunk := stream.read(chunk_size):
             if self.cipher_name.padding > 0:
                 chunk = fixed_bytes(chunk, self.cipher_name.padding)
             yield cipher.decrypt(chunk)
+        if stream != raw_stream:
+            stream.close()
 
     def _encrypt(self, data: bytes) -> bytes:
         self._cipher()

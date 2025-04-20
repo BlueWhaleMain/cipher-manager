@@ -48,10 +48,11 @@ class ProtectCipherFile(CipherFile):
             self._filepath = filepath
             return self
 
-    def pack_to(self, raw_filepath: str, dist_filepath: str, chunk_size: int = 2048,
-                progress: CmProgress = None) -> None:
+    def pack_to(self, raw_filepath: str, dist_filepath: str, progress: CmProgress, chunk_size: int = 2048) -> None:
         self.total_size = os.path.getsize(raw_filepath)
-        progress.start(self.total_size, filesize_convert, 'File Size')
+        if self.total_size == 0:
+            raise CmValueError('file is empty')
+        progress.start_or_sub(self.total_size, '加密中...', filesize_convert, 'File Size')
         self._filepath = raw_filepath
         self.filename = self._encrypt(os.path.basename(raw_filepath).encode('utf-8'))
         with open(raw_filepath, 'rb') as f:
@@ -68,8 +69,8 @@ class ProtectCipherFile(CipherFile):
                 if 0 < self._max_crypt_len < chunk_size:
                     chunk_size = self._max_crypt_len
                 progress.restart(self.total_size // chunk_size, unit=f'区块（{chunk_size}字节）')
-                for chunk in self.encrypt_stream(file, chunk_size):
                 current_size = 0
+                for chunk in self.encrypt_stream(file, chunk_size, progress, self.total_size):
                     current_size += len(chunk)
                     dist_file.write(chunk)
                     progress.step(last_msg=f'加密中...{filesize_convert(current_size)}')
@@ -96,8 +97,8 @@ class ProtectCipherFile(CipherFile):
         except UnicodeDecodeError as e:
             raise CmRuntimeError(f'解密失败：{e.object}') from e
 
-    def unpack_to(self, dist_filepath: str, chunk_size: int = 2048, progress: CmProgress = None) -> None:
-        progress.start()
+    def unpack_to(self, dist_filepath: str, progress: CmProgress, chunk_size: int = 2048) -> None:
+        progress.start_or_sub(title='解密中...')
         with open(self._filepath, 'rb') as f:
             if f.read(len(_MAGIC)) != _MAGIC:
                 raise CmRuntimeError('不正确的文件开头')
@@ -110,7 +111,7 @@ class ProtectCipherFile(CipherFile):
                 progress.restart(self.total_size // chunk_size, unit=f'区块（{chunk_size}字节）')
                 current_size = 0
                 crc = 0
-                for chunk in self.decrypt_stream(f, chunk_size):
+                for chunk in self.decrypt_stream(f, chunk_size, progress, self.total_size):
                     if current_size + len(chunk) > self.total_size:
                         chunk = chunk[:self.total_size - current_size]
                     current_size += len(chunk)

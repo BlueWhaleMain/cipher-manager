@@ -6,7 +6,7 @@ import pickle
 import shutil
 
 from PyQt6 import QtWidgets, QtGui, QtCore
-from PyQt6.QtWidgets import QMessageBox, QProgressDialog
+from PyQt6.QtWidgets import QMessageBox, QProgressDialog, QInputDialog
 
 from cm import file_load, CmValueError
 from cm.error import CmInterrupt
@@ -251,6 +251,27 @@ class CipherFileTableView(QtWidgets.QTableView):
                                                                 self.tr('所有文件(*)'))
             if not filepath:
                 return
+            if protect_file.iter_count > 1:
+                filesize = os.path.getsize(filepath)
+                # 假设对称加密1024个字节1000次为流畅
+                simple_encrypt_len = 1024
+                suggest_iter_count = 1 if (protect_file.cipher_name == protect_file.cipher_name.PKCS1_OAEP
+                                           or protect_file.cipher_name == protect_file.cipher_name.PKCS1_V1_5) else 1000
+                # 此处暂时简单评估加密复杂度，以不大于表格流畅迭代次数的复杂度积为准
+                crypt_score = simple_encrypt_len * suggest_iter_count
+                if filesize * protect_file.iter_count > crypt_score:
+                    button = QMessageBox.question(self, self.tr('加密迭代次数过大'), self.tr('降低迭代次数？'),
+                                                  QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No |
+                                                  QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Yes)
+                    if button == QMessageBox.StandardButton.Cancel:
+                        return
+                    if button == QMessageBox.StandardButton.Yes:
+                        # 大文件的迭代次数曲线应随着体积增长而急剧下降，最终为1
+                        iter_count = max(protect_file.iter_count * crypt_score // filesize, 1)
+                        protect_file.iter_count, ok = QInputDialog.getInt(self, self.tr('输入合适的值'),
+                                                                          self.tr('加密迭代次数'), iter_count)
+                        if not ok:
+                            return
             dist_filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, self.tr('选择保存位置'),
                                                                      os.path.join(self.current_dir,
                                                                                   os.path.basename(filepath)
@@ -260,7 +281,7 @@ class CipherFileTableView(QtWidgets.QTableView):
             if not dist_filepath:
                 return
             cm_progress = CmProgress(title=self.tr('加密文件中'))
-            execute_in_progress(self, protect_file.pack_to, filepath, dist_filepath, 2048, cm_progress,
+            execute_in_progress(self, protect_file.pack_to, filepath, dist_filepath, cm_progress, 2048,
                                 cm_progress=cm_progress)
             QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information, self.tr('提示'),
                                   f'{self.tr("文件已加密至：")}{dist_filepath}{self.tr("。")}',
@@ -293,7 +314,7 @@ class CipherFileTableView(QtWidgets.QTableView):
         if not dist_filepath:
             return
         cm_progress = CmProgress(title=self.tr('解密文件中'))
-        execute_in_progress(self, protect_file.unpack_to, dist_filepath, 2048, cm_progress,
+        execute_in_progress(self, protect_file.unpack_to, dist_filepath, cm_progress, 2048,
                             cm_progress=cm_progress)
         QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information, self.tr('提示'),
                               f'{self.tr("文件已解密至：")}{dist_filepath}{self.tr("。")}',
