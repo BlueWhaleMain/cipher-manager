@@ -93,7 +93,9 @@ class InputPasswordDialog(QtWidgets.QDialog, Ui_InputPasswordDialog):
         if validator:
             validator = self._try_execute_validator(validator)
             result = self._result
-            if not validator(self._result):
+            if validator(result):
+                return result
+            else:
                 self.setWindowTitle('验证失败，请再试一次')
                 self._clear()
                 self.exec()

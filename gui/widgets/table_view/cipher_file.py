@@ -530,16 +530,14 @@ class CipherFileTableView(QtWidgets.QTableView):
                                                            validator=self._key_passphrase_validator(key, cipher_file))
             if passphrase is None:
                 return False
-            execute_in_progress(self, cipher_file.unlock, key, passphrase)
         else:
             cipher_file.unlock(key)
         return True
 
-    @classmethod
-    def _key_passphrase_validator(cls, key: bytes, cipher_file: CipherFile):
+    def _key_passphrase_validator(self, key: bytes, cipher_file: CipherFile):
         @functools.wraps(cipher_file.unlock)
         def wrapper(passphrase: str) -> bool:
-            cipher_file.unlock(key, passphrase)
+            execute_in_progress(self, cipher_file.unlock, key, passphrase)
             return True
 
         return wrapper
