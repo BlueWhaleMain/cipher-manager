@@ -307,6 +307,7 @@ class CipherFileTableView(QtWidgets.QTableView):
                         sub_progress.cancel()
                 if sub_progress.wasCanceled():
                     progress.cancel()
+            self.resizeColumnsToContents()
         finally:
             self._ignore_auto_lock = False
 
@@ -358,10 +359,9 @@ class CipherFileTableView(QtWidgets.QTableView):
     @report_with_exception
     def _edit_item(self, _):
         index = self.currentIndex()
-        self._try_edit(index.column(), index.row())
-        self._set(index, self._text_show_dialog.show_text(self.action_edit.text(),
-                                                          self._get(self.currentIndex()),
-                                                          True))
+        if self._try_edit(index.column(), index.row()):
+            self._set(index, self._text_show_dialog.show_text(self.action_edit.text(), self._get(self.currentIndex()),
+                                                              True))
 
     @report_with_exception
     def _decrypt_row(self, _):
