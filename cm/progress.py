@@ -1,3 +1,4 @@
+import warnings
 from enum import IntEnum
 from threading import Event
 from typing import Callable
@@ -21,6 +22,10 @@ class CmProgress:
         self._status = self.Status.INACTIVE
         self._canceled = Event()
         self._last_msg: str = ''
+
+    def __del__(self):
+        if self.running:
+            warnings.warn('progress already running')
 
     @property
     def current(self) -> int:

@@ -7,7 +7,7 @@ _TABLE_RECORD_CIPER_FILE_CONTENT_TYPE = "application/cm-table-record"
 
 
 class TableRecordCipherFile(CipherFile):
-    """ 表格密钥文件 """
+    """ 加密表格文件 """
     content_type: str = _TABLE_RECORD_CIPER_FILE_CONTENT_TYPE
     # 记录
     records: list[list[bytes]] = []

@@ -127,7 +127,6 @@ class CipherFile(BaseModel):
         while chunk := stream.read(chunk_size):
             if self.cipher_name.padding > 0:
                 chunk = fixed_bytes(chunk, self.cipher_name.padding)
-
             yield cipher.encrypt(chunk)
 
     def decrypt_stream(self, stream: BinaryIO, chunk_size: int) -> Generator[bytes, None, None]:
@@ -141,8 +140,6 @@ class CipherFile(BaseModel):
 
     def _encrypt(self, data: bytes) -> bytes:
         self._cipher()
-        if 0 < self._max_crypt_len < len(data):
-            raise CmValueError('data too long')
         if self.cipher_name.padding > 0:
             data = fixed_bytes(data, self.cipher_name.padding)
         for _ in range(self.iter_count):

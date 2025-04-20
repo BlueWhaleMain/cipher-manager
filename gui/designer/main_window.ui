@@ -121,7 +121,7 @@
     <string>新建(&amp;N)</string>
    </property>
    <property name="statusTip">
-    <string>新建（N）</string>
+    <string>新建加密方式</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+N</string>
@@ -136,7 +136,7 @@
     <string>打开(&amp;O)</string>
    </property>
    <property name="statusTip">
-    <string>打开（O）</string>
+    <string>打开加密方式</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+O</string>
@@ -154,7 +154,7 @@
     <string>属性(&amp;A)</string>
    </property>
    <property name="statusTip">
-    <string>属性（A）</string>
+    <string>查看加密方式的属性</string>
    </property>
   </action>
   <action name="action_exit">
@@ -166,7 +166,7 @@
     <string>退出(&amp;X)</string>
    </property>
    <property name="statusTip">
-    <string>退出（X）</string>
+    <string>退出</string>
    </property>
   </action>
   <action name="action_export">
@@ -181,7 +181,7 @@
     <string>导出(&amp;E)</string>
    </property>
    <property name="statusTip">
-    <string>导出（E）</string>
+    <string>导出加密方式中存储的记录</string>
    </property>
   </action>
   <action name="action_save">
@@ -196,7 +196,7 @@
     <string>保存(&amp;S)</string>
    </property>
    <property name="statusTip">
-    <string>保存（Ctrl+S）</string>
+    <string>保存加密方式</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+S</string>
@@ -213,11 +213,8 @@
    <property name="text">
     <string>升序排序</string>
    </property>
-   <property name="toolTip">
-    <string>尚未实现</string>
-   </property>
    <property name="statusTip">
-    <string>升序排序</string>
+    <string>解密并升序排序所有行</string>
    </property>
   </action>
   <action name="action_sort_desc">
@@ -231,11 +228,8 @@
    <property name="text">
     <string>降序排序</string>
    </property>
-   <property name="toolTip">
-    <string>尚未实现</string>
-   </property>
    <property name="statusTip">
-    <string>降序排序</string>
+    <string>解密并降序排序所有行</string>
    </property>
   </action>
   <action name="action_search">
@@ -249,11 +243,8 @@
    <property name="text">
     <string>查找(&amp;F)</string>
    </property>
-   <property name="toolTip">
-    <string>尚未实现</string>
-   </property>
    <property name="statusTip">
-    <string>查找（F）</string>
+    <string>解密并查找字符串</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+F</string>
@@ -266,11 +257,8 @@
    <property name="text">
     <string>哈希工具</string>
    </property>
-   <property name="toolTip">
-    <string>尚未实现</string>
-   </property>
    <property name="statusTip">
-    <string/>
+    <string>打开哈希工具</string>
    </property>
   </action>
   <action name="action_import">
@@ -281,7 +269,7 @@
     <string>导入(&amp;I)</string>
    </property>
    <property name="statusTip">
-    <string>导入（I）</string>
+    <string>从表格中导入记录</string>
    </property>
   </action>
   <action name="action_random_password">
@@ -289,7 +277,7 @@
     <string>随机密码生成</string>
    </property>
    <property name="statusTip">
-    <string>随机密码生成</string>
+    <string>打开随机密码生成器</string>
    </property>
   </action>
   <action name="action_stay_on_top">
@@ -300,7 +288,7 @@
     <string>总在最前</string>
    </property>
    <property name="statusTip">
-    <string>总在最前</string>
+    <string>窗口总在最前</string>
    </property>
   </action>
   <action name="action_notes_mode">
@@ -311,7 +299,7 @@
     <string>便签模式</string>
    </property>
    <property name="statusTip">
-    <string>总在最前，无边框</string>
+    <string>窗口固定在最前，无边框</string>
    </property>
    <property name="shortcut">
     <string>F12</string>
@@ -328,7 +316,7 @@
     <string>自动锁定</string>
    </property>
    <property name="statusTip">
-    <string>自动锁定</string>
+    <string>失去焦点时自动锁定工作区</string>
    </property>
   </action>
   <action name="action_about">
@@ -350,6 +338,9 @@
    <property name="text">
     <string>基本类型转换</string>
    </property>
+   <property name="statusTip">
+    <string>打开基本类型转换工具</string>
+   </property>
   </action>
   <action name="action_ren">
    <property name="enabled">
@@ -361,6 +352,9 @@
    </property>
    <property name="text">
     <string>重命名/移动</string>
+   </property>
+   <property name="statusTip">
+    <string>重命名/移动加密定义文件</string>
    </property>
   </action>
   <action name="action_save_new">
@@ -374,10 +368,16 @@
    <property name="text">
     <string>另存为</string>
    </property>
+   <property name="statusTip">
+    <string>加密定义文件另存为</string>
+   </property>
   </action>
   <action name="action_otp">
    <property name="text">
     <string>OTP</string>
+   </property>
+   <property name="statusTip">
+    <string>打开OTP工具</string>
    </property>
   </action>
   <action name="action_encrypt_file">
@@ -391,6 +391,9 @@
    <property name="text">
     <string>加密文件</string>
    </property>
+   <property name="statusTip">
+    <string>使用当前加密方式加密文件</string>
+   </property>
   </action>
   <action name="action_decrypt_file">
    <property name="icon">
@@ -399,6 +402,9 @@
    </property>
    <property name="text">
     <string>解密文件</string>
+   </property>
+   <property name="statusTip">
+    <string>读取加密方式并解密文件</string>
    </property>
   </action>
   <action name="action_reload">
@@ -412,8 +418,11 @@
    <property name="text">
     <string>重新加载</string>
    </property>
-   <property name="toolTip">
+   <property name="statusTip">
     <string>重新加载文件中的内容</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+H</string>
    </property>
    <property name="menuRole">
     <enum>QAction::NoRole</enum>
@@ -426,8 +435,11 @@
    <property name="text">
     <string>解密全部</string>
    </property>
-   <property name="toolTip">
+   <property name="statusTip">
     <string>解密所有单元格</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+V</string>
    </property>
    <property name="menuRole">
     <enum>QAction::NoRole</enum>
@@ -441,7 +453,7 @@
    <property name="text">
     <string>GitHub</string>
    </property>
-   <property name="toolTip">
+   <property name="statusTip">
     <string>前往GitHub仓库首页</string>
    </property>
   </action>

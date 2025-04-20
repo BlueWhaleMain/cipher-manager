@@ -21,7 +21,7 @@ class AttributeDialog(QtWidgets.QDialog, Ui_attribute_dialog):
 
     def load_file(self, cipher_file: CipherFile) -> int:
         self.model.removeRows(0, self.model.rowCount())
-        cipher_item = ReadOnlyItem('密钥文件属性')
+        cipher_item = ReadOnlyItem('加密定义文件属性')
         cipher_item.appendRow((ReadOnlyItem('内容类型'), ReadOnlyItem(cipher_file.content_type)))
         cipher_item.appendRow((ReadOnlyItem('内容编码'), ReadOnlyItem(cipher_file.content_encoding)))
         cipher_item.appendRow((ReadOnlyItem('加密算法名称'), ReadOnlyItem(cipher_file.cipher_name)))
@@ -51,7 +51,7 @@ class AttributeDialog(QtWidgets.QDialog, Ui_attribute_dialog):
         cipher_item.appendRow(password_store_item)
 
         if isinstance(cipher_file, TableRecordCipherFile):
-            record_cipher_item = ReadOnlyItem('记录密钥文件附加属性')
+            record_cipher_item = ReadOnlyItem('表格内容附加属性')
             self._counter_row(record_cipher_item, cipher_file)
             cipher_item.appendRow(record_cipher_item)
         self.model.appendRow(cipher_item)

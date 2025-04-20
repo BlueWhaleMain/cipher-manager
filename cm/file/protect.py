@@ -58,7 +58,7 @@ class ProtectCipherFile(CipherFile):
             crc = 0
             while chunk := f.read(chunk_size):
                 crc = crc32(chunk, crc)
-                progress.step(len(chunk), f'校验中...，CRC32：{str(crc)}.')
+                progress.step(len(chunk), f'计算校验中...，CRC32：{str(crc)}.')
             self.crc32 = crc
         with open(raw_filepath, 'rb') as file:
             with open(dist_filepath, 'wb') as dist_file:
@@ -69,8 +69,10 @@ class ProtectCipherFile(CipherFile):
                     chunk_size = self._max_crypt_len
                 progress.restart(self.total_size // chunk_size, unit=f'区块（{chunk_size}字节）')
                 for chunk in self.encrypt_stream(file, chunk_size):
+                current_size = 0
+                    current_size += len(chunk)
                     dist_file.write(chunk)
-                    progress.step()
+                    progress.step(last_msg=f'加密中...{filesize_convert(current_size)}')
         progress.complete()
 
     def try_unlock_from_cipher_file(self, cipher_file: CipherFile) -> bool:

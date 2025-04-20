@@ -70,23 +70,23 @@ def execute_in_progress(self: QtWidgets.QWidget, fn: Callable[_P, _T], /, *args:
     t.setInterval(100)
 
     def progress_update():
-        skip = int(progress.toolTip())
-        current = cm_progress.current
-        total = cm_progress.total
-        if current > skip and current > 0 and total > 0:
-            eta = str(timedelta(seconds=(total - current) / (current - skip) // 10))
-        else:
-            eta = '**:**:**'
-        progress.setToolTip(str(current))
         if future.done():
             t.stop()
             if sip.isdeleted(progress):
                 return
             progress.accept()
+        progress.setWindowTitle('请稍等' if cm_progress.title is None else cm_progress.title)
+        skip = int(progress.toolTip())
+        current = cm_progress.current
+        total = cm_progress.total
+        if current > skip and 0 < current < total:
+            eta = str(timedelta(seconds=(total - current) / (current - skip) // 10))
         else:
-            progress.setValue(int(min(current / max(1, total) * 100, 99)) if total > 0 else 0)
-            progress.setLabelText(f"({cm_progress.current_str} / {cm_progress.total_str}) {cm_progress.unit}"
-                                  f" - ETA: {eta}{os.linesep}{cm_progress.last_msg}")
+            eta = '**:**:**'
+        progress.setToolTip(str(current))
+        progress.setValue(int(min(current / max(1, total) * 100, 99)) if total > 0 else 0)
+        progress.setLabelText(f"({cm_progress.current_str} / {cm_progress.total_str}) {cm_progress.unit}"
+                              f" - ETA: {eta}{os.linesep}{cm_progress.last_msg}")
 
     t.timeout.connect(progress_update)
     t.start()

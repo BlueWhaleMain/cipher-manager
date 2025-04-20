@@ -146,7 +146,7 @@ class CipherFileTableView(QtWidgets.QTableView):
 
     def open_file(self, filepath: str = None) -> None:
         if not filepath:
-            filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, self.tr('选择密钥文件'), self.current_dir,
+            filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, self.tr('选择加密定义文件'), self.current_dir,
                                                                 self.tr('Pickle文件(*.pkl);;所有文件(*)'))
             if not filepath:
                 return
@@ -196,7 +196,7 @@ class CipherFileTableView(QtWidgets.QTableView):
             if not self._filepath:
                 # 没有保存的路径属于新文件
                 self._ui_edit_happened()
-                self._filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, self.tr('保存密钥文件'),
+                self._filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, self.tr('保存加密定义文件'),
                                                                           self.current_dir,
                                                                           self.tr('Pickle文件(*.pkl);;所有文件(*)'))
             filepath = self._filepath
@@ -209,7 +209,7 @@ class CipherFileTableView(QtWidgets.QTableView):
         self._refresh()
 
     def move_file(self) -> None:
-        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, self.tr('重命名/移动密钥文件'), self.current_dir,
+        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, self.tr('重命名/移动加密定义文件'), self.current_dir,
                                                             self.tr('Pickle文件(*.pkl);;所有文件(*)'))
         if not filepath:
             return
@@ -218,7 +218,7 @@ class CipherFileTableView(QtWidgets.QTableView):
         self._refresh()
 
     def save_new_file(self) -> None:
-        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, self.tr('另存密钥文件'), self.current_dir,
+        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(self, self.tr('另存加密定义文件'), self.current_dir,
                                                             self.tr('Pickle文件(*.pkl);;所有文件(*)'))
         if not filepath:
             return
@@ -518,10 +518,10 @@ class CipherFileTableView(QtWidgets.QTableView):
         while cipher_file.key_type.is_file:
             filepath, _ = QtWidgets.QFileDialog.getOpenFileName(self, self.tr('选择包含密钥的文件'), self.current_dir,
                                                                 self.tr('所有文件(*)'
-                                                                        ';;二进制密钥文件(*.der *.cer *.cert)'
-                                                                        ';;文本密钥文件(*.pem *.asc)'
-                                                                        ';;私钥文件(*.key)'
-                                                                        ';;包含公钥的证书(*.crt *.p7c)'))
+                                                                        ';;DER证书(*.der *.cer *.cert)'
+                                                                        ';;ASCII PEM证书(*.pem *.asc)'
+                                                                        ';;未加密的私钥文件(*.key)'
+                                                                        ';;PKCS证书(*.crt *.p7c)'))
             if not filepath:
                 return False
             with open(filepath, 'rb') as f:
