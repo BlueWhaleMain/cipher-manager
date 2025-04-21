@@ -14,7 +14,35 @@
    <string>关于 CipherManagerGUI</string>
   </property>
   <layout class="QGridLayout" name="grid_layout">
-   <item row="1" column="0" colspan="3">
+   <item row="0" column="1">
+    <widget class="QLabel" name="version_label">
+     <property name="text">
+      <string>加载失败</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="2">
+    <widget class="QLabel" name="about_cm_label">
+     <property name="text">
+      <string>CipherManager版本：</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="0">
+    <widget class="QLabel" name="about_label">
+     <property name="text">
+      <string>CipherManagerGUI版本：</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="3">
+    <widget class="QLabel" name="cm_version_label">
+     <property name="text">
+      <string>加载失败</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="0" colspan="4">
     <widget class="QGroupBox" name="license_group_box">
      <property name="title">
       <string/>
@@ -33,14 +61,7 @@
      </layout>
     </widget>
    </item>
-   <item row="0" column="0">
-    <widget class="QLabel" name="about_label">
-     <property name="text">
-      <string>CipherManagerGUI</string>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="0" colspan="3">
+   <item row="4" column="0" colspan="4">
     <widget class="QDialogButtonBox" name="button_box">
      <property name="standardButtons">
       <set>QDialogButtonBox::Ok</set>

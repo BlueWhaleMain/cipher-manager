@@ -3,6 +3,11 @@ from cm.file.base import CipherFile
 from cm.file.protect import ProtectCipherFile
 from cm.file.table_record import TableRecordCipherFile
 
+__author__ = "BlueWhaleMain"
+
+version_info = (2, 0, '1')
+
+__version__ = ".".join([str(x) for x in version_info])
 
 def file_load(data: dict) -> CipherFile:
     if 'content_type' not in data:

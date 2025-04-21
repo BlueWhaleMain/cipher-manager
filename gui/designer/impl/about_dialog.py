@@ -3,6 +3,8 @@ import typing
 
 from PyQt6 import QtWidgets, QtCore, QtGui
 
+import cm
+import gui
 from gui.common.env import report_with_exception, find_path
 from gui.designer.about_dialog import Ui_about_dialog
 
@@ -24,6 +26,8 @@ class AboutDialog(QtWidgets.QDialog, Ui_about_dialog):
         self.setWindowFlags(QtCore.Qt.WindowType.CustomizeWindowHint | QtCore.Qt.WindowType.Dialog)
         self.license_group_box.setTitle(LICENSE_TITLE)
         self.license_text_edit.setMarkdown(LICENSE_TEXT)
+        self.version_label.setText(gui.__version__)
+        self.cm_version_label.setText(cm.__version__)
 
     @report_with_exception
     def keyPressEvent(self, e: QtGui.QKeyEvent) -> None:

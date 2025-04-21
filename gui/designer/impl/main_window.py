@@ -8,6 +8,7 @@ from cm.error import CmNotImplementedError
 from gui.common.env import report_with_exception
 from gui.designer.impl.about_dialog import AboutDialog
 from gui.designer.impl.basic_type_conversion_dialog import BasicTypeConversionDialog
+from gui.designer.impl.check_for_updates_form import CheckForUpdatesForm
 from gui.designer.impl.otp_dialog import OtpDialog
 from gui.designer.impl.random_password_dialog import RandomPasswordDialog
 from gui.designer.main_window import Ui_MainWindow
@@ -29,6 +30,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self._random_password_dialog: RandomPasswordDialog = RandomPasswordDialog(self)
         self._basic_type_conversion_dialog: BasicTypeConversionDialog = BasicTypeConversionDialog(self)
         self._otp_dialog: OtpDialog = OtpDialog(self)
+        self._check_for_updates_form: CheckForUpdatesForm = CheckForUpdatesForm()
 
         self.action_new.triggered.connect(self._new_file)
         self.action_open.triggered.connect(self._open_file)
@@ -63,6 +65,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.action_about.triggered.connect(self._about)
         self.action_github.triggered.connect(self._open_github)
+        self.action_check_for_updates.triggered.connect(self._check_for_updates)
 
         self._table_view.refreshed.connect(self._refresh)
         self.setStatusTip(self.tr('就绪'))
@@ -229,6 +232,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     @report_with_exception
     def _open_github(self, _):
         QDesktopServices.openUrl(QUrl("https://github.com/BlueWhaleMain/cipher-manager"))
+
+    @report_with_exception
+    def _check_for_updates(self, _):
+        self._check_for_updates_form.show()
 
     @report_with_exception
     def _refresh(self, _):

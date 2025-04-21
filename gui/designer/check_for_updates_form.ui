@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>check_for_updates_form</class>
+ <widget class="QWidget" name="check_for_updates_form">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>400</width>
+    <height>300</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>检查新版本</string>
+  </property>
+  <layout class="QGridLayout" name="grid_layout">
+   <item row="2" column="0">
+    <widget class="QCheckBox" name="pre_release_check_box">
+     <property name="text">
+      <string>检查预览版</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="0" colspan="4">
+    <widget class="QTextBrowser" name="update_details_text_browser"/>
+   </item>
+   <item row="2" column="1">
+    <widget class="QPushButton" name="check_for_update_push_button">
+     <property name="text">
+      <string>检查更新</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="3">
+    <widget class="QPushButton" name="browser_download_push_button">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="text">
+      <string>在浏览器下载</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="2">
+    <widget class="QPushButton" name="open_url_push_button">
+     <property name="text">
+      <string>前往更新页</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
