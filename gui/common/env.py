@@ -50,8 +50,6 @@ def message(icon: QtWidgets.QMessageBox.Icon, title: str = None, text: str = Non
             buttons: QtWidgets.QMessageBox.StandardButton = QtWidgets.QMessageBox.StandardButton.NoButton,
             parent=window, *args, max_len: int = 255, **kwargs):
     if parent is None:
-        if window is None:
-            raise RuntimeError('cannot create QMessageBox instance')
         parent = window
     return QtWidgets.QMessageBox(icon, title, text if len(text) < max_len else text[:max_len] + '...', buttons, parent,
                                  *args, **kwargs).exec()
@@ -102,8 +100,10 @@ def crash(e_t: type[BaseException], e: BaseException, *_, **__) -> Any:
         t_e_name = type(e).__name__
         es = str(e)
         critical(f'{t_e_name}：{os.linesep}{es}。' if es else f'{t_e_name}。')
-    window.close()
-    app.exit(1)
+    if window:
+        window.close()
+    if app:
+        app.exit(1)
     _raw_crash(e_t, e, *_, **__)
 
 

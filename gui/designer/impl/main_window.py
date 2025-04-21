@@ -17,7 +17,6 @@ from gui.widgets.table_view.cipher_file import CipherFileTableView
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     __logger = logging.getLogger(__name__)
 
-    @report_with_exception
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
