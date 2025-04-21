@@ -78,13 +78,12 @@ _raw_crash = sys.excepthook
 
 def crash(e_t: type[BaseException], e: BaseException, *_, **__) -> Any:
     global shown_exception
-    # 不记录已被记录过的异常
     if issubclass(e_t, CmBaseException):
-        if not e is shown_exception:
-            __LOG.debug(e, exc_info=not isinstance(e, Exception))
-        return
+        if e is shown_exception:
+            return
+        # 若应用内定义的异常未经处理被抛出到别的地方，需要引发崩溃
     elif e_t == KeyboardInterrupt:
-        # 静默处理
+        # 静默处理控制台退出异常
         es = str(e)
         if es:
             __LOG.info(f'{es}。')
@@ -93,18 +92,24 @@ def crash(e_t: type[BaseException], e: BaseException, *_, **__) -> Any:
         else:
             sys.exit(signal.SIGINT)
     elif e_t == SystemExit:
+        # 应尽量避免非正常退出等致命退出情况
         __LOG.info(e, exc_info=True)
+        _raw_crash(e_t, e, *_, **__)
         return
+    # 一切未处理的异常均需要导致应用退出，正常退出之前可以执行保存数据等操作，原始崩溃是不友好的
     if not e is shown_exception:
         __LOG.critical(e, exc_info=True)
         t_e_name = type(e).__name__
         es = str(e)
         critical(f'{t_e_name}：{os.linesep}{es}。' if es else f'{t_e_name}。')
-    if window:
-        window.close()
-    if app:
-        app.exit(1)
-    _raw_crash(e_t, e, *_, **__)
+    try:
+        if window:
+            window.close()
+        if app:
+            app.exit(1)
+    finally:
+        # 防止致命情况不产生任何记录，尽管Python解释器可能会处理该情况
+        _raw_crash(e_t, e, *_, **__)
 
 
 def report_with_exception(func: Callable[..., Any | None]) -> Callable[..., None]:
@@ -120,35 +125,51 @@ def report_with_exception(func: Callable[..., Any | None]) -> Callable[..., None
                 t_e_name = type(e).__name__
                 cs = str(e.__cause__) if e.__cause__ else None
                 t_c_name = type(e.__cause__).__name__ if e.__cause__ else None
+                # 此类异常用于打断执行流程，除非有信息否则不需要显示
                 if isinstance(e, KeyboardInterrupt):
                     if cs:
                         __LOG.debug(f'{es}：{cs}。')
                         if es:
+                            # 包含异常描述的一般为主动打断流程，警告用户
                             warning(f'{es}：{os.linesep}{cs}。')
+                        else:
+                            # 由异常引发的流程打断，按错误处理
+                            error(f'{cs}。')
                     elif es:
                         __LOG.info(f'{es}。')
+                        # 单纯打断流程，提示用户
                         info(f'{es}。')
                     else:
+                        # 建议用return替代无需提示用户的中断
                         __LOG.debug(e, exc_info=True)
                 elif isinstance(e, NotImplementedError):
                     es = str(e)
                     if es:
+                        # 这里可能是不支持的操作，需要警告用户
                         warning(f'{es}：{os.linesep}{cs}。')
                     else:
+                        # 功能没有实现时提供友好反馈，不应在稳定版中存在
                         __LOG.debug(e, exc_info=True)
                         info(f'功能尚未实现。')
                 else:
                     __LOG.error(e, exc_info=True)
+                    # 已知的异常
                     if cs:
                         error(f'{t_c_name}：{os.linesep}{cs if cs else e}。')
+                    # 检查并主动抛出的异常
+                    elif es:
+                        warning(f'{es}。')
+                    # 无名异常，应尽量避免
                     else:
-                        error(f'{t_e_name}：{os.linesep}{e}。')
+                        error(f'{t_e_name}：{os.linesep}{t_c_name if t_c_name else e}。')
                 shown_exception = e
                 break
             except Exception as e:
                 __LOG.error(e, exc_info=True)
                 es = str(e)
                 t_e_name = type(e).__name__
+                # 可能可以重试本次操作来解决，也可能需要紧急崩溃
+                # 对非专业用户不友好，应尽量避免
                 result = critical(f'{t_e_name}：{os.linesep}{es}。' if es else f'{t_e_name}。',
                                   '未知异常', QtWidgets.QMessageBox.StandardButton.Retry
                                   | QtWidgets.QMessageBox.StandardButton.Abort
