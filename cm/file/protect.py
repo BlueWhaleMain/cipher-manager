@@ -70,7 +70,8 @@ class ProtectCipherFile(CipherFile):
                     chunk_size = self._max_crypt_len
                 progress.restart(self.total_size // chunk_size, unit=f'区块（{chunk_size}字节）')
                 current_size = 0
-                for chunk in self.encrypt_stream(file, chunk_size, progress, self.total_size):
+                for chunk in self.encrypt_stream(file, chunk_size, progress, self.total_size,
+                                                 os.cpu_count() if self.cipher_name.padding <= 0 else 1):
                     current_size += len(chunk)
                     dist_file.write(chunk)
                     progress.step(last_msg=f'加密中...{filesize_convert(current_size)}')
@@ -111,7 +112,8 @@ class ProtectCipherFile(CipherFile):
                 progress.restart(self.total_size // chunk_size, unit=f'区块（{chunk_size}字节）')
                 current_size = 0
                 crc = 0
-                for chunk in self.decrypt_stream(f, chunk_size, progress, self.total_size):
+                for chunk in self.decrypt_stream(f, chunk_size, progress, self.total_size,
+                                                 os.cpu_count() if self.cipher_name.padding <= 0 else 1):
                     if current_size + len(chunk) > self.total_size:
                         chunk = chunk[:self.total_size - current_size]
                     current_size += len(chunk)
