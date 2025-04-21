@@ -241,6 +241,11 @@ class CipherFileTableView(QtWidgets.QTableView):
         with open(filepath, 'w') as f:
             csv.writer(f).writerows(self._cipher_file.reader())
 
+    def close_file(self) -> None:
+        if self.has_file and self._edited:
+            raise CmInterrupt(self.tr('有操作未保存'))
+        self._cipher_file = None
+
     def encrypt_file(self) -> None:
         if not self._suggest_unlock():
             return

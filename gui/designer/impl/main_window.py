@@ -36,6 +36,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.action_save.triggered.connect(self._save_file)
         self.action_save_new.triggered.connect(self._save_new)
         self.action_ren.triggered.connect(self._ren)
+        self.action_close.triggered.connect(self._close_file)
 
         self.action_import.triggered.connect(self._import_file)
         self.action_export.triggered.connect(self._export_file)
@@ -144,6 +145,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     @report_with_exception
     def _ren(self, _):
         self._table_view.move_file()
+
+    @report_with_exception
+    def _close_file(self, _):
+        self._table_view.close_file()
 
     @report_with_exception
     def _import_file(self, _):
@@ -260,6 +265,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         has_file = self._table_view.has_file
         self.action_save_new.setEnabled(has_file)
         self.action_ren.setEnabled(has_file)
+        self.action_close.setEnabled(has_file)
 
         self.action_export.setEnabled(has_file)
         self.action_attribute.setEnabled(has_file)
