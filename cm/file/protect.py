@@ -98,7 +98,7 @@ class ProtectCipherFile(CipherFile):
             raise CmRuntimeError(f'解密失败：{e.object}') from e
 
     def unpack_to(self, dist_filepath: str, progress: CmProgress, chunk_size: int = 2048) -> None:
-        progress.start_or_sub(title='解密中...')
+        progress.start_or_sub(title='解密并校验中...')
         with open(self._filepath, 'rb') as f:
             if f.read(len(_MAGIC)) != _MAGIC:
                 raise CmRuntimeError('不正确的文件开头')
@@ -117,7 +117,9 @@ class ProtectCipherFile(CipherFile):
                     current_size += len(chunk)
                     crc = crc32(chunk, crc)
                     dist_file.write(chunk)
-                    progress.step(last_msg=f'解密中...{filesize_convert(current_size)}')
+                    progress.step(last_msg=f'解密并校验中...{filesize_convert(current_size)}')
+                if crc != self.crc32:
+                    raise CmRuntimeError('文件校验失败')
 
         progress.complete()
 
