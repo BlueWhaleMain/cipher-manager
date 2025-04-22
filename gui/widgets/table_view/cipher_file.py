@@ -146,7 +146,11 @@ class CipherFileTableView(QTableView):
 
     def new_file(self) -> None:
         if self.has_file and self._edited:
-            raise CmInterrupt(self.tr('有操作未保存'))
+            button = QMessageBox.warning(self, self.tr('警告'), self.tr('有操作未保存，丢弃？'),
+                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                         QMessageBox.StandardButton.No)
+            if button == QMessageBox.StandardButton.No:
+                return
         self._cipher_file = self._new_cipher_file_dialog.create_file()
         self.save_file()
 
@@ -246,7 +250,11 @@ class CipherFileTableView(QTableView):
 
     def close_file(self) -> None:
         if self.has_file and self._edited:
-            raise CmInterrupt(self.tr('有操作未保存'))
+            button = QMessageBox.warning(self, self.tr('警告'), self.tr('有操作未保存，丢弃？'),
+                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                         QMessageBox.StandardButton.No)
+            if button == QMessageBox.StandardButton.No:
+                return
         self._cipher_file = None
 
     def encrypt_file(self) -> None:
