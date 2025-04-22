@@ -173,7 +173,7 @@
     <string>退出(&amp;X)</string>
    </property>
    <property name="statusTip">
-    <string>退出</string>
+    <string>退出应用</string>
    </property>
   </action>
   <action name="action_export">
@@ -483,7 +483,10 @@
     <string>检查新版本</string>
    </property>
    <property name="toolTip">
-    <string>在浏览器中访问最新版本下载地址</string>
+    <string>检查新版本</string>
+   </property>
+   <property name="statusTip">
+    <string>打开版本检查窗口</string>
    </property>
    <property name="menuRole">
     <enum>QAction::NoRole</enum>
@@ -494,6 +497,9 @@
     <string>关闭(&amp;C)</string>
    </property>
    <property name="toolTip">
+    <string>关闭(C)</string>
+   </property>
+   <property name="statusTip">
     <string>关闭当前加密方式</string>
    </property>
    <property name="shortcut">
@@ -508,6 +514,9 @@
     <string>生成RSA私钥</string>
    </property>
    <property name="toolTip">
+    <string>生成RSA私钥</string>
+   </property>
+   <property name="statusTip">
     <string>简单生成RSA私钥并导出</string>
    </property>
    <property name="menuRole">
