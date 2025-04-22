@@ -13,6 +13,9 @@ class Ui_check_for_updates_form(object):
     def setupUi(self, check_for_updates_form):
         check_for_updates_form.setObjectName("check_for_updates_form")
         check_for_updates_form.resize(400, 300)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/window_icon/cm-gui.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        check_for_updates_form.setWindowIcon(icon)
         self.grid_layout = QtWidgets.QGridLayout(check_for_updates_form)
         self.grid_layout.setObjectName("grid_layout")
         self.pre_release_check_box = QtWidgets.QCheckBox(parent=check_for_updates_form)

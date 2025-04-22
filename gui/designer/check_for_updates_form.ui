@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>检查新版本</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="icon.qrc">
+    <normaloff>:/window_icon/cm-gui.png</normaloff>:/window_icon/cm-gui.png</iconset>
+  </property>
   <layout class="QGridLayout" name="grid_layout">
    <item row="2" column="0">
     <widget class="QCheckBox" name="pre_release_check_box">
@@ -50,6 +54,8 @@
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="icon.qrc"/>
+ </resources>
  <connections/>
 </ui>

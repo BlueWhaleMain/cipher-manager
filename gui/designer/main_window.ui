@@ -16,6 +16,10 @@
   <property name="windowTitle">
    <string>CipherManagerGUI</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="icon.qrc">
+    <normaloff>:/window_icon/cm-gui.png</normaloff>:/window_icon/cm-gui.png</iconset>
+  </property>
   <widget class="QWidget" name="central_widget">
    <layout class="QGridLayout" name="grid_layout"/>
   </widget>
@@ -511,7 +515,9 @@
    </property>
   </action>
  </widget>
- <resources/>
+ <resources>
+  <include location="icon.qrc"/>
+ </resources>
  <connections>
   <connection>
    <sender>action_exit</sender>

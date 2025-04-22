@@ -36,6 +36,7 @@ def main():
     if locale_loaded:
         app.installTranslator(translator)
         splash.showMessage(app.tr('启动中...'), Qt.AlignmentFlag.AlignCenter, Qt.GlobalColor.white)
+    from gui.designer import icon_rc
     from gui.designer.impl.main_window import MainWindow
     window = MainWindow()
     if not locale_loaded:
@@ -49,6 +50,7 @@ def main():
     try:
         code = app.exec()
     finally:
+        icon_rc.qCleanupResources()
         if code:
             __logger.info(f'App exit code {code}.')
             sys.exit(code)

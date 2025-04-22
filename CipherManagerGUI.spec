@@ -27,7 +27,7 @@ exe = EXE(pyz,
           bootloader_ignore_signals=False,
           strip=False,
           upx=True,
-          console=False, version='gui/file_version_info', icon='')
+          console=False, version='gui/file_version_info', icon='gui/designer/cm-gui.png')
 coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,
