@@ -80,16 +80,16 @@ class InputPasswordDialog(QtWidgets.QDialog, Ui_InputPasswordDialog):
             return None
         if verify:
             self.setWindowTitle('输入两次以确认')
+        result = self._result
         while verify:
-            result = self._result
             self._clear()
             self.exec()
             if self._result is None:
                 return None
             elif self._result == result:
-                return result
+                break
             else:
-                self._result = result
+                result = self._result
         if validator:
             validator = self._try_execute_validator(validator)
             result = self._result
