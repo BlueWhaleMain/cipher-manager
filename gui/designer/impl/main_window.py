@@ -1,13 +1,16 @@
+from Crypto.PublicKey import RSA
 from PyQt6.QtCore import QUrl, QEvent, Qt
 from PyQt6.QtGui import QDesktopServices, QStandardItemModel, QDropEvent, QDragEnterEvent, QCloseEvent, QHideEvent, \
     QKeyEvent
-from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox
+from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox, QInputDialog, QFileDialog
 
 from cm.error import CmNotImplementedError
 from gui.common.env import report_with_exception
+from gui.common.progress import execute_in_progress
 from gui.designer.impl.about_dialog import AboutDialog
 from gui.designer.impl.basic_type_conversion_dialog import BasicTypeConversionDialog
 from gui.designer.impl.check_for_updates_form import CheckForUpdatesForm
+from gui.designer.impl.input_password_dialog import InputPasswordDialog
 from gui.designer.impl.otp_dialog import OtpDialog
 from gui.designer.impl.random_password_dialog import RandomPasswordDialog
 from gui.designer.main_window import Ui_MainWindow
@@ -58,6 +61,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.action_otp.triggered.connect(self._otp)
         self.action_hash_tools.triggered.connect(self._hash_tools)
         self.action_random_password.triggered.connect(self._random_password)
+        self.action_generate_rsa_keystore.triggered.connect(self._generate_rsa_keystore)
         self.action_basic_type_conversion.triggered.connect(self._basic_type_conversion)
 
         self.action_about.triggered.connect(self._about)
@@ -214,6 +218,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _random_password(self, _):
         self._random_password_dialog.show()
         self._random_password_dialog.activateWindow()
+
+    @report_with_exception
+    def _generate_rsa_keystore(self, _):
+        bits, _ = QInputDialog.getInt(self, self.tr('输入RSA位数，必须是2的指数倍'), self.tr('RSA位数：'), 4096, 1024)
+        # noinspection PyTypeChecker
+        key = execute_in_progress(self, RSA.generate, bits)
+        passphrase = InputPasswordDialog(self).getpass(verify=True)
+        filepath, _ = QFileDialog.getSaveFileName(self, '选择私钥保存位置',
+                                                  filter=self.tr('DER证书(*.der);;所有文件(*)'))
+        with open(filepath, 'wb') as f:
+            f.write(key.export_key('DER', passphrase, 8))
+        QMessageBox.information(self, self.tr('提示'), self.tr('私钥已保存至：{}').format(filepath))
 
     @report_with_exception
     def _basic_type_conversion(self, _):

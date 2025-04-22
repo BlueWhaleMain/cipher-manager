@@ -85,6 +85,7 @@
     <addaction name="action_otp"/>
     <addaction name="action_hash_tools"/>
     <addaction name="action_random_password"/>
+    <addaction name="action_generate_rsa_keystore"/>
     <addaction name="action_basic_type_conversion"/>
    </widget>
    <widget class="QMenu" name="menu_view">
@@ -493,6 +494,17 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+W</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
+   </property>
+  </action>
+  <action name="action_generate_rsa_keystore">
+   <property name="text">
+    <string>生成RSA私钥</string>
+   </property>
+   <property name="toolTip">
+    <string>简单生成RSA私钥并导出</string>
    </property>
    <property name="menuRole">
     <enum>QAction::NoRole</enum>
