@@ -1,8 +1,7 @@
-import logging
-
-from PyQt6 import QtWidgets, QtGui, QtCore
-from PyQt6.QtCore import QUrl
-from PyQt6.QtGui import QDesktopServices
+from PyQt6.QtCore import QUrl, QEvent, Qt
+from PyQt6.QtGui import QDesktopServices, QStandardItemModel, QDropEvent, QDragEnterEvent, QCloseEvent, QHideEvent, \
+    QKeyEvent
+from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox
 
 from cm.error import CmNotImplementedError
 from gui.common.env import report_with_exception
@@ -15,16 +14,14 @@ from gui.designer.main_window import Ui_MainWindow
 from gui.widgets.table_view.cipher_file import CipherFileTableView
 
 
-class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
-    __logger = logging.getLogger(__name__)
-
+class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self._name = self.windowTitle()
         self._table_view = CipherFileTableView(self.central_widget)
         self.grid_layout.addWidget(self._table_view, 0, 0, 1, 1)
-        self.model = QtGui.QStandardItemModel(self._table_view)
+        self.model = QStandardItemModel(self._table_view)
         self._table_view.setModel(self.model)
         self._about_dialog: AboutDialog = AboutDialog(self)
         self._random_password_dialog: RandomPasswordDialog = RandomPasswordDialog(self)
@@ -69,9 +66,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self._table_view.refreshed.connect(self._refresh)
         self.setStatusTip(self.tr('就绪'))
+        self._started = True
 
     @report_with_exception
-    def init(self, app: QtWidgets.QApplication):
+    def init(self, app: QApplication):
         arguments = app.arguments()
         if len(arguments) > 1:
             self._open_file_(arguments[1])
@@ -79,14 +77,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self._refresh_()
 
     @report_with_exception
-    def dropEvent(self, e: QtGui.QDropEvent) -> None:
+    def dropEvent(self, e: QDropEvent) -> None:
         urls = e.mimeData().urls()
         if urls:
             self._table_view.open_file(urls[0].toLocalFile())
         super().dropEvent(e)
 
     @report_with_exception
-    def dragEnterEvent(self, e: QtGui.QDragEnterEvent) -> None:
+    def dragEnterEvent(self, e: QDragEnterEvent) -> None:
         if e.mimeData().urls():
             e.accept()
         else:
@@ -94,36 +92,34 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         super().dragEnterEvent(e)
 
     @report_with_exception
-    def closeEvent(self, e: QtGui.QCloseEvent) -> None:
+    def closeEvent(self, e: QCloseEvent) -> None:
         if self._table_view.edited:
-            result = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Icon.Information, '退出', '有操作未保存。',
-                QtWidgets.QMessageBox.StandardButton.Save | QtWidgets.QMessageBox.StandardButton.Discard
-                | QtWidgets.QMessageBox.StandardButton.Cancel).exec()
-            if result == QtWidgets.QMessageBox.StandardButton.Save:
+            result = QMessageBox.information(self, '退出', '有操作未保存。', QMessageBox.StandardButton.Save
+                                             | QMessageBox.StandardButton.Discard
+                                             | QMessageBox.StandardButton.Cancel)
+            if result == QMessageBox.StandardButton.Save:
                 self._table_view.save_file()
-            elif result == QtWidgets.QMessageBox.StandardButton.Cancel:
+            elif result == QMessageBox.StandardButton.Cancel:
                 e.ignore()
                 return
         super().closeEvent(e)
 
     @report_with_exception
-    def changeEvent(self, e: QtCore.QEvent) -> None:
-        if e.type() in (QtCore.QEvent.Type.ActivationChange, QtCore.QEvent.Type.WindowStateChange):
-            if not self.isActiveWindow() or self.isMinimized():
-                if self.action_auto_lock.isChecked():
-                    self._table_view.lock()
+    def changeEvent(self, e: QEvent) -> None:
+        if e.type() in (QEvent.Type.ActivationChange, QEvent.Type.WindowStateChange):
+            self._try_lock_()
+        if self.isVisible():
+            self._refresh_()
         super().changeEvent(e)
 
     @report_with_exception
-    def hideEvent(self, e: QtGui.QHideEvent) -> None:
-        if self.action_auto_lock.isChecked():
-            self._table_view.lock()
+    def hideEvent(self, e: QHideEvent) -> None:
+        self._try_lock_()
         super().hideEvent(e)
 
     @report_with_exception
-    def keyPressEvent(self, e: QtGui.QKeyEvent) -> None:
-        if e.key() == QtCore.Qt.Key.Key_F12:
+    def keyPressEvent(self, e: QKeyEvent) -> None:
+        if e.key() == Qt.Key.Key_F12:
             self.action_notes_mode.setChecked(False)
             self._notes_mode_(False)
         super().keyPressEvent(e)
@@ -194,7 +190,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     @report_with_exception
     def _stay_on_top(self, selected):
-        self.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, selected)
+        self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, selected)
         self.show()
 
     @report_with_exception
@@ -241,14 +237,30 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def _refresh(self, _):
         self._refresh_()
 
+    def _try_lock_(self):
+        # 没有选择任何文件
+        if not self._table_view.has_file:
+            return
+        # 未启用自动锁定
+        if not self.action_auto_lock.isChecked():
+            return
+        # 存在活动窗口，不视为离开应用
+        if QApplication.activeWindow() is not None:
+            return
+        # 存在模态窗口，无法锁定应用
+        if QApplication.modalWindow() is not None:
+            QApplication.alert(self)
+            return
+        self._table_view.lock()
+
     def _open_file_(self, filepath: str = None):
         self._table_view.open_file(filepath)
 
     def _notes_mode_(self, selected):
         self.action_auto_lock.setChecked(not selected)
         if not self.action_stay_on_top.isChecked():
-            self.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, selected)
-        self.setWindowFlag(QtCore.Qt.WindowType.FramelessWindowHint, selected)
+            self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, selected)
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, selected)
         self.menubar.setVisible(not selected)
         self.show()
 
@@ -257,9 +269,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if not self._table_view.has_file:
             return ''
         if self._table_view.locked is True:
-            return self.tr("已锁定")
+            return self.tr('已锁定')
         if self.action_auto_lock.isChecked():
-            return self.tr("自动锁定已开启")
+            if self._table_view.has_file and QApplication.modalWindow() is not None:
+                return self.tr('当前无法锁定工作区')
+            return self.tr('自动锁定已开启')
         return ''
 
     def _refresh_(self):

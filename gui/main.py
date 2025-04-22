@@ -11,7 +11,6 @@ def main():
     splash.show()
     QApplication.processEvents()
     from gui.common import env
-    env.app = app
     sys.excepthook = env.crash
     import logging
     __logger = logging.getLogger(__name__)
@@ -39,7 +38,6 @@ def main():
         splash.showMessage(app.tr('启动中...'), Qt.AlignmentFlag.AlignCenter, Qt.GlobalColor.white)
     from gui.designer.impl.main_window import MainWindow
     window = MainWindow()
-    env.window = window
     if not locale_loaded:
         # 已解决：PyInstaller打包问题，未能包含所有translations文件
         env.warning(f'Load translation failed, see log file know more details.{os.linesep}Log directory: {log_path}.')
