@@ -548,8 +548,18 @@ class CipherFileTableView(QTableView):
         if not self._suggest_unlock():
             return
         model = self.model()
-        # noinspection PyUnresolvedReferences
-        self._cipher_file.set_cell(row, col, model.item(row, col).text())
+        try:
+            # noinspection PyUnresolvedReferences
+            self._cipher_file.set_cell(row, col, model.item(row, col).text())
+        except:
+            # 阻止反复响应事件导致状态不正确
+            model.blockSignals(True)
+            try:
+                # noinspection PyUnresolvedReferences
+                self._get_cell(row, col).setText(self._cipher_file.get_cell(row, col))
+            finally:
+                model.blockSignals(False)
+            raise
         self._file_edited()
         column_count = model.columnCount()
         row_count = model.rowCount()
