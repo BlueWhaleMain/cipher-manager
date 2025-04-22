@@ -94,6 +94,10 @@ class CipherFile(BaseModel):
                 self._key = key.encode('utf-8')
             elif isinstance(key, bytes):
                 self._key = copy_bytes(key)
+            try:
+                self._cipher()
+            except ValueError as e:
+                raise CmValueError(e) from e
         elif self.key_type == KeyType.RSA_KEYSTORE:
             try:
                 self._key = RSA.importKey(key, passphrase)
@@ -123,6 +127,16 @@ class CipherFile(BaseModel):
             key = copy_bytes(key)
         else:
             return self.key_hash is None
+        if self.cipher_name == CipherName.DES and len(key) > 8:
+            return False
+        elif self.cipher_name == CipherName.DES3 and len(key) > 24:
+            return False
+        elif self.cipher_name == CipherName.AES128 and len(key) > 16:
+            return False
+        elif self.cipher_name == CipherName.AES192 and len(key) > 24:
+            return False
+        elif self.cipher_name == CipherName.AES256 and len(key) > 32:
+            return False
         return self.key_hash == self._gen_key_hash(key)
 
     def encrypt_stream(self, stream: BinaryIO, chunk_size: int, progress: CmProgress,

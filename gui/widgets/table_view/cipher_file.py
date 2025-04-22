@@ -4,6 +4,7 @@ import logging
 import os
 import pickle
 import shutil
+from typing import AnyStr
 
 from PyQt6.QtCore import pyqtSignal, Qt, QAbstractItemModel, QModelIndex, pyqtBoundSignal
 from PyQt6.QtGui import QAction, QIcon, QCursor, QStandardItem
@@ -522,13 +523,18 @@ class CipherFileTableView(QTableView):
                     continue
                 if result == QMessageBox.StandardButton.Cancel:
                     return False
-            passphrase = InputPasswordDialog(self).getpass(self.tr('输入文件密码（没有点击取消）'),
-                                                           validator=self._key_passphrase_validator(key, cipher_file))
+            passphrase = InputPasswordDialog.getpass(self, self.tr('输入文件密码（没有点击取消）'),
+                                                     self.tr('用于保护私钥的加密密钥'),
+                                                     validator=self._key_passphrase_validator(key, cipher_file))
             if passphrase is None:
                 return False
             return True
-        key = InputPasswordDialog(self).getpass(self.tr('输入密码'), verify=cipher_file.key_hash is None,
-                                                validator=cipher_file.validate_key)
+        if cipher_file.key_hash is None:
+            key = InputPasswordDialog.getpass(self, self.tr('设置密码'), self.tr('加密密钥'),
+                                              cipher_file.key_hash is None, self._key_validator(cipher_file))
+        else:
+            key = InputPasswordDialog.getpass(self, self.tr('输入密码'), self.tr('解密密钥'),
+                                              cipher_file.key_hash is None, self._key_validator(cipher_file))
         if key is None:
             return False
         if cipher_file.set_key(key):
@@ -536,9 +542,18 @@ class CipherFileTableView(QTableView):
         cipher_file.unlock(key)
         return True
 
+    @classmethod
+    def _key_validator(cls, cipher_file: CipherFile):
+        @functools.wraps(cipher_file.unlock)
+        def wrapper(key: AnyStr):
+            cipher_file.unlock(key)
+            return True
+
+        return wrapper
+
     def _key_passphrase_validator(self, key: bytes, cipher_file: CipherFile):
         @functools.wraps(cipher_file.unlock)
-        def wrapper(passphrase: str) -> bool:
+        def wrapper(passphrase: AnyStr) -> bool:
             execute_in_progress(self, cipher_file.unlock, key, passphrase)
             return True
 

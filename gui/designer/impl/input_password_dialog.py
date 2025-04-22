@@ -1,12 +1,15 @@
+import base64
 import functools
 import typing
-from typing import Callable
+from typing import Callable, AnyStr
 
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QLineEdit
+from PyQt6.QtWidgets import QLineEdit, QWidget
 
 from cm import CmValueError
+from cm.error import CmRuntimeError
+from gui.common import ENCODINGS
 from gui.common.env import report_with_exception
 from gui.designer.input_password_dialog import Ui_InputPasswordDialog
 
@@ -15,12 +18,19 @@ class InputPasswordDialog(QtWidgets.QDialog, Ui_InputPasswordDialog):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
-        self._result: typing.Optional[str] = None
+        self._result: typing.Optional[AnyStr] = None
         self.error_label.setStyleSheet("color: rgb(255, 0, 0);")
         self.plain_text_edit.hide()
         self.error_label.hide()
         self.show_password_check_box.checkStateChanged.connect(self._show_password_change)
         self.multi_line_check_box.checkStateChanged.connect(self._multiline_change)
+        head = ('str', 'HEX', 'BASE64')
+        body = set(ENCODINGS)
+        for h in head:
+            if h in ENCODINGS:
+                body.remove(h)
+        self.password_encoding_combo_box.addItems(head + tuple(body))
+        self.password_encoding_combo_box.setCurrentIndex(0)
 
     @report_with_exception
     def showEvent(self, _) -> None:
@@ -28,8 +38,21 @@ class InputPasswordDialog(QtWidgets.QDialog, Ui_InputPasswordDialog):
 
     @report_with_exception
     def accept(self) -> None:
-        self._result = self.line_edit.text() if self.line_edit.isVisible() else self.plain_text_edit.toPlainText()
-        # self.close()
+        text = self.line_edit.text() if self.line_edit.isVisible() else self.plain_text_edit.toPlainText()
+        try:
+            _encoding = self.password_encoding_combo_box.currentData(0)
+            if _encoding == 'str':
+                self._result = text
+            elif _encoding == 'HEX':
+                self._result = bytes.fromhex(text)
+            elif _encoding == 'BASE64':
+                self._result = base64.standard_b64decode(text)
+            elif _encoding in ENCODINGS:
+                self._result = text.encode(_encoding)
+            else:
+                raise CmValueError(_encoding)
+        except Exception as e:
+            raise CmRuntimeError(str(e)) from e
         super().accept()
 
     @report_with_exception
@@ -69,17 +92,19 @@ class InputPasswordDialog(QtWidgets.QDialog, Ui_InputPasswordDialog):
 
         return wrapper
 
-    def getpass(self, text: str = '输入密码', title: str = None, verify: bool = False,
-                validator: Callable[[str], bool] = None) -> str | None:
+    @classmethod
+    def getpass(cls, parent: QWidget, title: str = 'Enter password', placeholder: str = 'password',
+                verify: bool = False, validator: Callable[[AnyStr], bool] = None) -> AnyStr | None:
+        self = cls(parent)
         if title:
             self.setWindowTitle(title)
-        self.line_edit.setPlaceholderText(text)
-        self.plain_text_edit.setPlaceholderText(text)
+        self.line_edit.setPlaceholderText(placeholder)
+        self.plain_text_edit.setPlaceholderText(placeholder)
         self.exec()
         if self._result is None:
             return None
         if verify:
-            self.setWindowTitle('输入两次以确认')
+            self.setWindowTitle(self.tr('输入两次以确认'))
         result = self._result
         while verify:
             self._clear()
@@ -96,15 +121,15 @@ class InputPasswordDialog(QtWidgets.QDialog, Ui_InputPasswordDialog):
             if validator(result):
                 return result
             else:
-                self.setWindowTitle('验证失败，请再试一次')
+                self.setWindowTitle(self.tr('验证失败，请再试一次'))
                 self._clear()
                 self.exec()
             while not validator(self._result):
                 if self._result is None:
                     return None
                 if self._result == result:
-                    button = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Question, '密码可能不正确', '忽略并继续？',
-                                                   QtWidgets.QMessageBox.StandardButton.Ignore
+                    button = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Question, self.tr('密码可能不正确'),
+                                                   self.tr('忽略并继续？'), QtWidgets.QMessageBox.StandardButton.Ignore
                                                    | QtWidgets.QMessageBox.StandardButton.Retry).exec()
                     if button == QtWidgets.QMessageBox.StandardButton.Ignore:
                         return self._result

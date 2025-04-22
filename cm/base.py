@@ -36,7 +36,7 @@ def fixed_bytes(data: bytes, unit_len: int, min_len: int = 0, max_len: int = Non
             extend_len += unit_len
         return data + b'\0' * extend_len
     else:
-        raise ValueError(data)
+        raise ValueError(f'min_len: {min_len}, max_len: {max_len}, current_len: {data_len}')
 
 
 class CmJsonEncoder(JSONEncoder):

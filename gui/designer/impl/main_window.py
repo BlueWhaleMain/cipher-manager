@@ -224,7 +224,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         bits, _ = QInputDialog.getInt(self, self.tr('输入RSA位数，必须是2的指数倍'), self.tr('RSA位数：'), 4096, 1024)
         # noinspection PyTypeChecker
         key = execute_in_progress(self, RSA.generate, bits)
-        passphrase = InputPasswordDialog(self).getpass(verify=True)
+        passphrase = InputPasswordDialog.getpass(self, self.tr('设置密码'), self.tr('用于保护私钥的加密密钥'), True)
         filepath, _ = QFileDialog.getSaveFileName(self, '选择私钥保存位置',
                                                   filter=self.tr('DER证书(*.der);;所有文件(*)'))
         with open(filepath, 'wb') as f:
