@@ -3,9 +3,8 @@ import functools
 import typing
 from typing import Callable, AnyStr
 
-from PyQt6 import QtWidgets
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QLineEdit, QWidget
+from PyQt6.QtWidgets import QLineEdit, QWidget, QMessageBox, QDialog
 
 from cm import CmValueError
 from cm.error import CmRuntimeError
@@ -14,7 +13,7 @@ from gui.common.env import report_with_exception
 from gui.designer.input_password_dialog import Ui_InputPasswordDialog
 
 
-class InputPasswordDialog(QtWidgets.QDialog, Ui_InputPasswordDialog):
+class InputPasswordDialog(QDialog, Ui_InputPasswordDialog):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
@@ -31,6 +30,7 @@ class InputPasswordDialog(QtWidgets.QDialog, Ui_InputPasswordDialog):
                 body.remove(h)
         self.password_encoding_combo_box.addItems(head + tuple(body))
         self.password_encoding_combo_box.setCurrentIndex(0)
+        self.line_edit.setFocus()
 
     @report_with_exception
     def showEvent(self, _) -> None:
@@ -66,9 +66,11 @@ class InputPasswordDialog(QtWidgets.QDialog, Ui_InputPasswordDialog):
             self.show_password_check_box.hide()
             self.line_edit.hide()
             self.plain_text_edit.show()
+            self.plain_text_edit.setFocus()
         else:
             self.plain_text_edit.hide()
             self.line_edit.show()
+            self.line_edit.setFocus()
             self.show_password_check_box.show()
         self.resize(int(self.minimumHeight() * 2 / 0.618), self.minimumHeight())
 
@@ -128,10 +130,10 @@ class InputPasswordDialog(QtWidgets.QDialog, Ui_InputPasswordDialog):
                 if self._result is None:
                     return None
                 if self._result == result:
-                    button = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Question, self.tr('密码可能不正确'),
-                                                   self.tr('忽略并继续？'), QtWidgets.QMessageBox.StandardButton.Ignore
-                                                   | QtWidgets.QMessageBox.StandardButton.Retry).exec()
-                    if button == QtWidgets.QMessageBox.StandardButton.Ignore:
+                    button = QMessageBox.question(self, self.tr('密码可能不正确'), self.tr('忽略并继续？'),
+                                                  QMessageBox.StandardButton.Ignore | QMessageBox.StandardButton.Retry,
+                                                  QMessageBox.StandardButton.Retry).exec()
+                    if button == QMessageBox.StandardButton.Ignore:
                         return self._result
                 result = self._result
                 self._clear()
