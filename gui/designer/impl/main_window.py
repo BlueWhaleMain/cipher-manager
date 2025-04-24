@@ -48,8 +48,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.action_decrypt_all.triggered.connect(self._decrypt_all)
         self.action_reload.triggered.connect(self._reload)
-        self.action_sort_asc.triggered.connect(self._sort_asc)
-        self.action_sort_desc.triggered.connect(self._sort_desc)
 
         self.action_search.triggered.connect(self._search)
 
@@ -181,14 +179,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._table_view.reload()
 
     @report_with_exception
-    def _sort_asc(self, _):
-        raise CmNotImplementedError
-
-    @report_with_exception
-    def _sort_desc(self, _):
-        raise CmNotImplementedError
-
-    @report_with_exception
     def _search(self, _):
         raise CmNotImplementedError
 
@@ -314,8 +304,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.action_decrypt_all.setEnabled(has_file)
         self.action_reload.setEnabled(has_file)
-        self.action_sort_asc.setEnabled(has_file)
-        self.action_sort_desc.setEnabled(has_file)
 
         self.action_search.setEnabled(has_file)
 

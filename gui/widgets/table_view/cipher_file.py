@@ -7,7 +7,7 @@ import shutil
 from typing import AnyStr
 
 from PyQt6.QtCore import pyqtSignal, Qt, QAbstractItemModel, QModelIndex, pyqtBoundSignal
-from PyQt6.QtGui import QAction, QIcon, QCursor, QStandardItem
+from PyQt6.QtGui import QAction, QIcon, QCursor, QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import QMessageBox, QProgressDialog, QInputDialog, QStyledItemDelegate, QTableView, QWidget, \
     QHeaderView, QMenu, QFileDialog
 from PyQt6.sip import isdeleted
@@ -72,6 +72,26 @@ class CipherFileTableView(QTableView):
 
         self.context_menu.addSeparator()
 
+        self.action_row_insert = QAction(self)
+        self.action_row_insert.setText(self.tr('插入一行'))
+        self.context_menu.addAction(self.action_row_insert)
+
+        self.action_col_insert = QAction(self)
+        self.action_col_insert.setText(self.tr('插入一列'))
+        self.context_menu.addAction(self.action_col_insert)
+
+        icon = QIcon.fromTheme("go-up")
+        self.action_row_go_up = QAction(self)
+        self.action_row_go_up.setIcon(icon)
+        self.action_row_go_up.setText(self.tr('整行上移'))
+        self.context_menu.addAction(self.action_row_go_up)
+
+        icon = QIcon.fromTheme("go-down")
+        self.action_row_go_down = QAction(self)
+        self.action_row_go_down.setIcon(icon)
+        self.action_row_go_down.setText(self.tr('整行下移'))
+        self.context_menu.addAction(self.action_row_go_down)
+
         icon = QIcon.fromTheme("edit-delete")
         self.action_remove_line = QAction(self)
         self.action_remove_line.setIcon(icon)
@@ -102,6 +122,14 @@ class CipherFileTableView(QTableView):
         self.action_decrypt_col.triggered.connect(self._decrypt_col)
         # noinspection PyUnresolvedReferences
         self.action_generate.triggered.connect(self._generate_item)
+        # noinspection PyUnresolvedReferences
+        self.action_row_insert.triggered.connect(self._row_insert)
+        # noinspection PyUnresolvedReferences
+        self.action_col_insert.triggered.connect(self._col_insert)
+        # noinspection PyUnresolvedReferences
+        self.action_row_go_up.triggered.connect(self._row_go_up)
+        # noinspection PyUnresolvedReferences
+        self.action_row_go_down.triggered.connect(self._row_go_down)
         # noinspection PyUnresolvedReferences
         self.action_remove_line.triggered.connect(self._remove_row)
         # noinspection PyUnresolvedReferences
@@ -416,6 +444,78 @@ class CipherFileTableView(QTableView):
             self._set(index, text)
 
     @report_with_exception
+    def _row_insert(self, _):
+        if not self.has_file:
+            return
+        index = self.currentIndex()
+        # noinspection PyTypeChecker
+        model: QStandardItemModel = self.model()
+        records = self._cipher_file.records
+        row = index.row()
+        # 最后一行不能移动，下标不能越界
+        if row + 1 >= model.rowCount() or row - 1 >= len(records):
+            return
+        records.insert(row, [])
+        model.insertRow(row, [self._make_cell() for _ in range(model.columnCount())])
+
+    @report_with_exception
+    def _col_insert(self, _):
+        if not self.has_file:
+            return
+        index = self.currentIndex()
+        # noinspection PyTypeChecker
+        model: QStandardItemModel = self.model()
+        records = self._cipher_file.records
+        col = index.column()
+        # 最后一列不能移动
+        if col + 1 >= model.columnCount():
+            return
+        for i in range(len(records)):
+            current_row = records[i]
+            if col < len(current_row):
+                current_row.insert(col, b'')
+        self._file_edited()
+        model.insertColumn(col, [self._make_cell() for _ in range(model.rowCount())])
+
+    @report_with_exception
+    def _row_go_up(self, _):
+        if not self.has_file:
+            return
+        index = self.currentIndex()
+        # noinspection PyTypeChecker
+        model: QStandardItemModel = self.model()
+        records = self._cipher_file.records
+        row = index.row()
+        # 第一行不能上移，最后一行不能移动，下标不能越界
+        if row <= 0 or row + 1 >= model.rowCount() or row >= len(records):
+            return
+        # 移除当前行，并插入上一行
+        current_row = records.pop(row)
+        self._file_edited()
+        records.insert(row - 1, current_row)
+        current_row_model = model.takeRow(row)
+        model.insertRow(row - 1, current_row_model)
+
+    @report_with_exception
+    def _row_go_down(self, _):
+        if not self.has_file:
+            return
+        index = self.currentIndex()
+        # noinspection PyTypeChecker
+        model: QStandardItemModel = self.model()
+        records = self._cipher_file.records
+        row = index.row()
+        # 倒数第二行不能下移，最后一行不能移动，下标不能越界
+        if row + 2 >= model.rowCount() or row + 1 >= len(records):
+            return
+        # 移除下一行，并插入当前行
+        next_row = records.pop(row + 1)
+        self._file_edited()
+        records.insert(row, next_row)
+        next_row_model = model.takeRow(row + 1)
+        model.insertRow(row, next_row_model)
+
+    @report_with_exception
     def _remove_row(self, _):
         row = self.currentIndex().row()
         if row >= self.model().rowCount() - 1:
@@ -570,16 +670,23 @@ class CipherFileTableView(QTableView):
     def _edit_data(self, row: int, col: int) -> None:
         if not self._suggest_unlock():
             return
-        model = self.model()
+        # noinspection PyTypeChecker
+        model: QStandardItemModel = self.model()
+        text = model.item(row, col).text()
+        _cipher_file = self._cipher_file
+        if not text:
+            try:
+                if not _cipher_file.records[row][col]:
+                    return
+            except IndexError:
+                return
         try:
-            # noinspection PyUnresolvedReferences
-            self._cipher_file.set_cell(row, col, model.item(row, col).text())
+            _cipher_file.set_cell(row, col, text)
         except:
             # 阻止反复响应事件导致状态不正确
             model.blockSignals(True)
             try:
-                # noinspection PyUnresolvedReferences
-                self._get_cell(row, col).setText(self._cipher_file.get_cell(row, col))
+                self._get_cell(row, col).setText(_cipher_file.get_cell(row, col))
             finally:
                 model.blockSignals(False)
             raise
@@ -587,29 +694,23 @@ class CipherFileTableView(QTableView):
         column_count = model.columnCount()
         row_count = model.rowCount()
         if col + 1 >= column_count:
-            # noinspection PyUnresolvedReferences
             model.appendColumn([self._make_cell() for _ in range(row_count)])
         if row + 1 >= row_count:
-            # noinspection PyUnresolvedReferences
             model.appendRow([self._make_cell() for _ in range(column_count)])
 
     def _refresh(self, reload: bool = False):
-        model = self.model()
+        # noinspection PyTypeChecker
+        model: QStandardItemModel = self.model()
         if reload is True:
             model.removeRows(0, model.rowCount())
-            # noinspection PyUnresolvedReferences
             model.setRowCount(0)
-            # noinspection PyUnresolvedReferences
             model.setColumnCount(0)
             if self.has_file:
                 cipher_file = self._cipher_file
                 for row in range(len(cipher_file.records)):
                     for col in range(len(cipher_file.records[row])):
-                        # noinspection PyUnresolvedReferences
                         model.setItem(row, col, self._make_cell(cipher_file.records[row][col].hex()))
-            # noinspection PyUnresolvedReferences
             model.setColumnCount(model.columnCount() + 1)
-            # noinspection PyUnresolvedReferences
             model.setRowCount(model.rowCount() + 1)
             self._get_cell(0, 0).setEditable(False)
             self.resizeColumnsToContents()
@@ -617,17 +718,20 @@ class CipherFileTableView(QTableView):
                 self.setColumnWidth(col, min(self.columnWidth(col), 255))
         self.action_decrypt_row.setEnabled(model.rowCount() > 1)
         self.action_decrypt_col.setEnabled(model.columnCount() > 1)
+        self.action_row_insert.setEnabled(model.rowCount() > 1)
+        self.action_col_insert.setEnabled(model.columnCount() > 1)
+        self.action_row_go_up.setEnabled(model.rowCount() > 2)
+        self.action_row_go_down.setEnabled(model.rowCount() > 2)
         self.action_remove_line.setEnabled(model.rowCount() > 1)
         self.action_remove_colum.setEnabled(model.columnCount() > 1)
         self.refreshed.emit(reload)
 
     def _get_cell(self, row: int, col: int) -> QStandardItem:
-        model = self.model()
-        # noinspection PyUnresolvedReferences
+        # noinspection PyTypeChecker
+        model: QStandardItemModel = self.model()
         item = model.item(row, col)
         if item is None:
             item = self._make_cell()
-            # noinspection PyUnresolvedReferences
             model.setItem(row, col, item)
         return item
 

@@ -65,16 +65,8 @@
     <property name="title">
      <string>编辑(&amp;E)</string>
     </property>
-    <widget class="QMenu" name="menu">
-     <property name="title">
-      <string>行操作</string>
-     </property>
-     <addaction name="action_sort_asc"/>
-     <addaction name="action_sort_desc"/>
-    </widget>
     <addaction name="action_decrypt_all"/>
     <addaction name="action_reload"/>
-    <addaction name="menu"/>
    </widget>
    <widget class="QMenu" name="menu_search">
     <property name="title">
@@ -207,36 +199,6 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+S</string>
-   </property>
-  </action>
-  <action name="action_sort_asc">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="icon">
-    <iconset theme="view-sort-ascending">
-     <normaloff>.</normaloff>.</iconset>
-   </property>
-   <property name="text">
-    <string>升序排序</string>
-   </property>
-   <property name="statusTip">
-    <string>解密并升序排序所有行</string>
-   </property>
-  </action>
-  <action name="action_sort_desc">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="icon">
-    <iconset theme="view-sort-descending">
-     <normaloff>.</normaloff>.</iconset>
-   </property>
-   <property name="text">
-    <string>降序排序</string>
-   </property>
-   <property name="statusTip">
-    <string>解密并降序排序所有行</string>
    </property>
   </action>
   <action name="action_search">
