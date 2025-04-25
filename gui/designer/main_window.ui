@@ -79,7 +79,6 @@
      <string>工具(&amp;O)</string>
     </property>
     <addaction name="action_otp"/>
-    <addaction name="action_hash_tools"/>
     <addaction name="action_random_password"/>
     <addaction name="action_generate_rsa_keystore"/>
     <addaction name="action_basic_type_conversion"/>

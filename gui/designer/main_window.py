@@ -166,7 +166,6 @@ class Ui_MainWindow(object):
         self.menu_edit.addAction(self.action_reload)
         self.menu_search.addAction(self.action_search)
         self.menu_tools.addAction(self.action_otp)
-        self.menu_tools.addAction(self.action_hash_tools)
         self.menu_tools.addAction(self.action_random_password)
         self.menu_tools.addAction(self.action_generate_rsa_keystore)
         self.menu_tools.addAction(self.action_basic_type_conversion)
