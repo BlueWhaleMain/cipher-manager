@@ -1,7 +1,7 @@
 from Crypto.PublicKey import RSA
 from PyQt6.QtCore import QUrl, QEvent, Qt
 from PyQt6.QtGui import QDesktopServices, QStandardItemModel, QDropEvent, QDragEnterEvent, QCloseEvent, QHideEvent, \
-    QKeyEvent
+    QKeyEvent, QCursor
 from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox, QInputDialog, QFileDialog
 
 from cm.error import CmNotImplementedError
@@ -13,6 +13,7 @@ from gui.designer.impl.check_for_updates_form import CheckForUpdatesForm
 from gui.designer.impl.input_password_dialog import InputPasswordDialog
 from gui.designer.impl.otp_dialog import OtpDialog
 from gui.designer.impl.random_password_dialog import RandomPasswordDialog
+from gui.designer.impl.search_dialog import SearchDialog
 from gui.designer.main_window import Ui_MainWindow
 from gui.widgets.table_view.cipher_file import CipherFileTableView
 
@@ -26,6 +27,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.grid_layout.addWidget(self._table_view, 0, 0, 1, 1)
         self.model = QStandardItemModel(self._table_view)
         self._table_view.setModel(self.model)
+        self._search_dialog = SearchDialog(self._table_view, self)
         self._about_dialog: AboutDialog = AboutDialog(self)
         self._random_password_dialog: RandomPasswordDialog = RandomPasswordDialog(self)
         self._basic_type_conversion_dialog: BasicTypeConversionDialog = BasicTypeConversionDialog(self)
@@ -180,7 +182,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @report_with_exception
     def _search(self, _):
-        raise CmNotImplementedError
+        self._search_dialog.show()
+        pos = QCursor.pos()
+        if not self.geometry().contains(pos):
+            return
+        line_edit = self._search_dialog.line_edit
+        self._search_dialog.move(pos.x() - line_edit.width() // 2, pos.y() - line_edit.height() // 2)
 
     @report_with_exception
     def _stay_on_top(self, selected):
