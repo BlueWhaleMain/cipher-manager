@@ -106,11 +106,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             elif result == QMessageBox.StandardButton.Cancel:
                 e.ignore()
                 return
+            self._table_view.discard_change()
         super().closeEvent(e)
 
     @report_with_exception
     def changeEvent(self, e: QEvent) -> None:
         if e.type() in (QEvent.Type.ActivationChange, QEvent.Type.WindowStateChange):
+            self._auto_save_()
             self._try_lock_()
         if self.isVisible():
             self._refresh_()
@@ -118,6 +120,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @report_with_exception
     def hideEvent(self, e: QHideEvent) -> None:
+        self._auto_save_()
         self._try_lock_()
         super().hideEvent(e)
 
@@ -253,6 +256,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     @report_with_exception
     def _refresh(self, _):
         self._refresh_()
+
+    def _auto_save_(self):
+        self._table_view.auto_save()
 
     def _try_lock_(self):
         # 没有选择任何文件

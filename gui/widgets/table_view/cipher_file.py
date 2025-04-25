@@ -202,6 +202,30 @@ class CipherFileTableView(QTableView):
                                          QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
             if result == QMessageBox.StandardButton.No:
                 return
+        swap_filepath = filepath + '~'
+        if os.path.isfile(swap_filepath):
+            button = QMessageBox.question(self, self.tr('提示'), self.tr('检测到未保存的更改，是否加载？'),
+                                          QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Discard
+                                          | QMessageBox.StandardButton.Ignore, QMessageBox.StandardButton.Yes)
+            if button == QMessageBox.StandardButton.Yes:
+                with open(swap_filepath, 'rb') as f:
+                    try:
+                        data = pickle.load(f)
+                        self._cipher_file = file_load(data)
+                        self._filepath = filepath
+                        self._edited = True
+                        self._refresh()
+                        return
+                    except Exception as e:
+                        button = QMessageBox.warning(self, self.tr('警告'),
+                                                     self.tr('交换文件加载失败：{}，{}是否删除？'
+                                                             .format(e, os.linesep)),
+                                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                                     QMessageBox.StandardButton.No)
+                        if button == QMessageBox.StandardButton.Yes:
+                            os.remove(swap_filepath)
+            elif button == QMessageBox.StandardButton.Discard:
+                os.remove(swap_filepath)
         with open(filepath, 'rb') as f:
             try:
                 data = pickle.load(f)
@@ -241,7 +265,30 @@ class CipherFileTableView(QTableView):
             # noinspection PyTypeChecker
             pickle.dump(cipher_file.model_dump(), f, self._cipher_file_protocol)
             self._edited = False
+        swap_filepath = filepath + '~'
+        if os.path.isfile(swap_filepath):
+            os.remove(swap_filepath)
         self._refresh()
+
+    def auto_save(self) -> None:
+        if not self.edited:
+            return
+        if not self.has_file:
+            return
+        if not self._filepath:
+            return
+        with open(self._filepath + '~', 'wb') as f:
+            # noinspection PyTypeChecker
+            pickle.dump(self.__cipher_file.model_dump(), f, self._cipher_file_protocol)
+
+    def discard_change(self, reload: bool = False) -> None:
+        if not self._filepath:
+            return
+        swap_filepath = self._filepath + '~'
+        if os.path.isfile(swap_filepath):
+            os.remove(swap_filepath)
+        self._edited = False
+        self._refresh(reload)
 
     def move_file(self) -> None:
         filepath, _ = QFileDialog.getSaveFileName(self, self.tr('重命名/移动加密定义文件'), self.current_dir,
