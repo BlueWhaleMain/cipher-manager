@@ -1,3 +1,25 @@
+#  MIT License
+#
+#  Copyright (c) 2022-2025 BlueWhaleMain
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a copy
+#  of this software and associated documentation files (the "Software"), to deal
+#  in the Software without restriction, including without limitation the rights
+#  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#  copies of the Software, and to permit persons to whom the Software is
+#  furnished to do so, subject to the following conditions:
+#
+#  The above copyright notice and this permission notice shall be included in all
+#  copies or substantial portions of the Software.
+#
+#  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#  SOFTWARE.
+#
 import csv
 import functools
 import logging
@@ -30,6 +52,7 @@ _LOG = logging.getLogger(__name__)
 
 
 class CipherFileTableView(QTableView):
+    """加密表格文件视图"""
     refreshed: pyqtBoundSignal = pyqtSignal(bool)
 
     def __init__(self, parent: QWidget):
@@ -152,27 +175,33 @@ class CipherFileTableView(QTableView):
 
     @property
     def edited(self) -> bool:
+        """是否已编辑"""
         return self._edited
 
     @property
     def current_dir(self) -> str:
+        """当前打开文件所在目录"""
         if self._filepath:
             return os.path.dirname(self._filepath)
         return os.getcwd()
 
     @property
     def filepath(self) -> str:
+        """当前打开文件路径"""
         return self._filepath
 
     @property
     def has_file(self) -> bool:
+        """当前是否已打开文件"""
         return self.__cipher_file is not None
 
     @property
     def locked(self) -> bool | None:
+        """当前是否已锁定"""
         return None if self.__cipher_file is None else self.__cipher_file.locked
 
     def new_file(self) -> None:
+        """创建新文件"""
         if self.has_file and self._edited:
             button = QMessageBox.warning(self, self.tr('警告'), self.tr('有操作未保存，丢弃？'),
                                          QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -183,6 +212,7 @@ class CipherFileTableView(QTableView):
         self.save_file()
 
     def open_file(self, filepath: str = None) -> None:
+        """打开文件"""
         if not filepath:
             filepath, _ = QFileDialog.getOpenFileName(self, self.tr('选择加密定义文件'), self.current_dir,
                                                       self.tr('Pickle文件(*.pkl);;所有文件(*)'))
@@ -236,6 +266,7 @@ class CipherFileTableView(QTableView):
         self._refresh()
 
     def import_file(self) -> None:
+        """导入文件中的记录"""
         filepath, _ = QFileDialog.getOpenFileName(self, self.tr('导入记录'), self.current_dir,
                                                   self.tr('CSV文件(*.csv);;所有文件(*)'))
         if not filepath:
@@ -249,6 +280,7 @@ class CipherFileTableView(QTableView):
             self._refresh(reload=True)
 
     def save_file(self, filepath: str = None) -> None:
+        """保存文件"""
         cipher_file = self._cipher_file
         if not self.has_file:
             return
@@ -271,6 +303,7 @@ class CipherFileTableView(QTableView):
         self._refresh()
 
     def auto_save(self) -> None:
+        """自动保存"""
         if not self.edited:
             return
         if not self.has_file:
@@ -282,6 +315,7 @@ class CipherFileTableView(QTableView):
             pickle.dump(self.__cipher_file.model_dump(), f, self._cipher_file_protocol)
 
     def discard_change(self, reload: bool = False) -> None:
+        """取消所有更改"""
         if not self._filepath:
             return
         swap_filepath = self._filepath + '~'
@@ -291,6 +325,7 @@ class CipherFileTableView(QTableView):
         self._refresh(reload)
 
     def move_file(self) -> None:
+        """重命名/移动文件"""
         filepath, _ = QFileDialog.getSaveFileName(self, self.tr('重命名/移动加密定义文件'), self.current_dir,
                                                   self.tr('Pickle文件(*.pkl);;所有文件(*)'))
         if not filepath:
@@ -300,6 +335,7 @@ class CipherFileTableView(QTableView):
         self._refresh()
 
     def save_new_file(self) -> None:
+        """文件另存为"""
         filepath, _ = QFileDialog.getSaveFileName(self, self.tr('另存加密定义文件'), self.current_dir,
                                                   self.tr('Pickle文件(*.pkl);;所有文件(*)'))
         if not filepath:
@@ -312,6 +348,7 @@ class CipherFileTableView(QTableView):
         self._refresh()
 
     def export_file(self) -> None:
+        """导出文件记录"""
         filepath, _ = QFileDialog.getSaveFileName(self, self.tr('导出记录'),
                                                   os.path.join(self.current_dir,
                                                                os.path.splitext(self._filepath)[0] + '.csv'),
@@ -324,6 +361,7 @@ class CipherFileTableView(QTableView):
             csv.writer(f).writerows(self._cipher_file.reader())
 
     def close_file(self) -> None:
+        """关闭当前文件"""
         if self.has_file and self._edited:
             button = QMessageBox.warning(self, self.tr('警告'), self.tr('有操作未保存，丢弃？'),
                                          QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -333,6 +371,7 @@ class CipherFileTableView(QTableView):
         self._cipher_file = None
 
     def encrypt_file(self) -> None:
+        """弹出对话框加密指定文件"""
         if not self._suggest_unlock():
             return
         protect_file = ProtectCipherFile.from_cipher_file(self._cipher_file)
@@ -375,6 +414,7 @@ class CipherFileTableView(QTableView):
                                 QMessageBox.StandardButton.Ok)
 
     def decrypt_file(self) -> None:
+        """弹出对话框解密指定文件"""
         self_decrypt = self._suggest_unlock()
         filepath, _ = QFileDialog.getOpenFileName(self, self.tr('选择要解密的文件'), self.current_dir,
                                                   self.tr('管理器保护文件(*.cm-protect);;所有文件(*)'))
@@ -401,6 +441,7 @@ class CipherFileTableView(QTableView):
                                 QMessageBox.StandardButton.Ok)
 
     def decrypt_all(self):
+        """解密所有单元格"""
         cols = self.model().columnCount()
         rows = self.model().rowCount()
         progress = QProgressDialog(self)
@@ -416,12 +457,15 @@ class CipherFileTableView(QTableView):
         self.resizeColumnsToContents()
 
     def reload(self):
+        """重新加载"""
         self._refresh(True)
 
     def open_attribute_dialog(self) -> None:
+        """打开属性对话框"""
         self._attribute_dialog.load_file(self._cipher_file)
 
     def lock(self):
+        """锁定当前工作区"""
         if self.has_file:
             cipher_file = self._cipher_file
             if not cipher_file.locked:

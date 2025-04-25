@@ -1,3 +1,25 @@
+#  MIT License
+#
+#  Copyright (c) 2022-2025 BlueWhaleMain
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a copy
+#  of this software and associated documentation files (the "Software"), to deal
+#  in the Software without restriction, including without limitation the rights
+#  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#  copies of the Software, and to permit persons to whom the Software is
+#  furnished to do so, subject to the following conditions:
+#
+#  The above copyright notice and this permission notice shall be included in all
+#  copies or substantial portions of the Software.
+#
+#  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#  SOFTWARE.
+#
 import os
 from datetime import timedelta
 from typing import TypeVar, Callable, ParamSpec, Generic, Iterable
@@ -14,6 +36,7 @@ _T = TypeVar('_T')
 
 
 class _Future(Generic[_T]):
+    """不包含Python挂起的协程对象"""
     _done: bool
     _result: _T | None
     _exception: BaseException | None
@@ -44,6 +67,7 @@ class _Future(Generic[_T]):
 
 def execute_in_progress(self: QtWidgets.QWidget, fn: Callable[_P, _T], /, *args: _P.args,
                         cm_progress: CmProgress = None, **kwargs: _P.kwargs) -> _T:
+    """创建线程执行耗时过程，阻塞，弹出进度对话框，支持进度管理器"""
     future = _Future()
     thread = DefaultCallableThread(self, fn, *args, **kwargs)
     thread.returned.connect(future.set_result)
@@ -97,6 +121,7 @@ def execute_in_progress(self: QtWidgets.QWidget, fn: Callable[_P, _T], /, *args:
 
 
 def each_in_steps(progress: QProgressDialog, steps: Iterable[_T], total: int = 0) -> Iterable[_T]:
+    """执行多个步骤并弹出进度条对话框，非阻塞，仅在遍历时执行"""
     progress.setRange(0, total)
     progress.setValue(0)
     progress.show()

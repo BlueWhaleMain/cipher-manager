@@ -1,3 +1,25 @@
+#  MIT License
+#
+#  Copyright (c) 2022-2025 BlueWhaleMain
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a copy
+#  of this software and associated documentation files (the "Software"), to deal
+#  in the Software without restriction, including without limitation the rights
+#  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#  copies of the Software, and to permit persons to whom the Software is
+#  furnished to do so, subject to the following conditions:
+#
+#  The above copyright notice and this permission notice shall be included in all
+#  copies or substantial portions of the Software.
+#
+#  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#  SOFTWARE.
+#
 import functools
 import logging
 import os
@@ -16,10 +38,15 @@ from cm.error import CmBaseException
 
 __LOG: logging.Logger = logging.getLogger(__name__)
 
+# 应用程序当前PID
 PID = os.getpid()
+# 应用程序当前完整命令行
 CMDLINE = Process(os.getpid()).cmdline()
+# 当前应用程序启动命令（不包含参数与上下文）
 SELF_CMD = sys.argv[0]
+# 当前可执行文件路径
 PATH = os.path.dirname(SELF_CMD)
+# 当前应用程序启动命令（可被用于启动同一个实例）
 _raw_cmds = []
 for arg in CMDLINE:
     _raw_cmds.append(arg)
@@ -31,6 +58,7 @@ cm.base.erase_disabled = True
 
 
 def find_path(path: str, validator=os.path.exists, external=tuple()) -> str:
+    """寻找路径"""
     paths = [*sys.path, *external]
     for sys_path in paths:
         if validator(os.path.join(sys_path, path)):
@@ -39,6 +67,7 @@ def find_path(path: str, validator=os.path.exists, external=tuple()) -> str:
 
 
 def new_instance(filepath: str) -> None:
+    """新建应用程序实例"""
     subprocess.Popen([*_raw_cmds, filepath])
 
 
@@ -49,6 +78,7 @@ shown_exception: BaseException | None = None
 def message(icon: QMessageBox.Icon, title: str = None, text: str = None,
             buttons: QMessageBox.StandardButton = QMessageBox.StandardButton.NoButton,
             parent=None, *args, max_len: int = 255, **kwargs) -> int:
+    """弹出消息框（消息长度未知）"""
     if parent is None:
         parent = QApplication.activeWindow()
     if QThread.currentThread() == QApplication.instance().thread():
@@ -79,6 +109,7 @@ def critical(msg: str, title: str = '致命异常', buttons: QMessageBox.Standar
 
 
 def crash(e_t: type[BaseException], e: BaseException, traceback: TracebackType | None) -> Any:
+    """崩溃应用"""
     global shown_exception
     if issubclass(e_t, CmBaseException):
         if e is shown_exception:
@@ -112,6 +143,7 @@ def crash(e_t: type[BaseException], e: BaseException, traceback: TracebackType |
 
 
 def report_with_exception(func: Callable[..., Any | None]) -> Callable[..., Any | None]:
+    """包装函数使其向用户报告异常，避免信号槽函数崩溃，用法类似于@qt_safe"""
     @functools.wraps(func)
     def wrapper(*args, **kwargs) -> None:
         global shown_exception

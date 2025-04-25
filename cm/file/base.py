@@ -1,3 +1,25 @@
+#  MIT License
+#
+#  Copyright (c) 2022-2025 BlueWhaleMain
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a copy
+#  of this software and associated documentation files (the "Software"), to deal
+#  in the Software without restriction, including without limitation the rights
+#  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#  copies of the Software, and to permit persons to whom the Software is
+#  furnished to do so, subject to the following conditions:
+#
+#  The above copyright notice and this permission notice shall be included in all
+#  copies or substantial portions of the Software.
+#
+#  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#  SOFTWARE.
+#
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, Future
 from enum import StrEnum
@@ -19,7 +41,7 @@ from common.file import filesize_convert
 
 
 class CipherName(StrEnum):
-    """使用的加密算法"""
+    """加密算法名称枚举"""
     DES = 'DES'
     DES3 = 'DES3'
     AES128 = 'AES-128'
@@ -30,6 +52,12 @@ class CipherName(StrEnum):
 
     @property
     def padding(self) -> int:
+        """
+        加密算法的填充长度
+
+        -1为不支持填充
+        :return: 填充长度
+        """
         if self == self.DES or self == self.DES3:
             return 8
         if self == self.AES128 or self == self.AES192 or self == self.AES256:
@@ -38,6 +66,7 @@ class CipherName(StrEnum):
 
 
 class HashName(StrEnum):
+    """哈希算法名称枚举"""
     SHA1 = 'SHA1'
     SHA256 = 'SHA256'
     SHA512 = 'SHA512'
@@ -45,19 +74,43 @@ class HashName(StrEnum):
 
 
 class KeyType(StrEnum):
+    """密钥类型枚举"""
     PASSWORD = 'PASSWORD'
     RSA_KEYSTORE = 'RSA_KEYSTORE'
 
     @property
     def need_salt_protect(self) -> bool:
+        """
+        :return: 需要盐来保护（一般是口令这样的密钥）
+        """
         return self == self.PASSWORD
 
     @property
     def is_file(self) -> bool:
+        """
+        :return: 表明其值主要来源于文件内容而非用户输入
+        """
         return self != self.PASSWORD
 
 
 class CipherFile(BaseModel):
+    """
+    加密方式文件
+
+    Attributes:
+        content_type: 内容类型，由子类解释，用于反序列化
+        content_encoding: 内容编码格式，仅应用于子类定义的内容正文，对字段属性不起作用
+        cipher_name: 加密算法名称
+        cipher_args: 加密算法自定义参数
+        iter_count: 加密迭代次数，默认为1
+        key_type: 密钥类型，默认为PASSWORD
+        key_hash: 密钥哈希，用于验证文件是否与密钥相关联
+        key_hash_name: 密钥哈希算法，用于指示哈希值如何计算
+        key_hash_args: 密钥哈希算法自定义参数
+        key_hash_iter_count: 密钥哈希算法迭代次数，默认为1
+        password_salt: 密钥盐值
+        password_salt_len: 用于生成密钥盐值的长度
+    """
     content_type: str
     content_encoding: str
     cipher_name: CipherName
@@ -71,9 +124,13 @@ class CipherFile(BaseModel):
     password_salt: bytes | None = None
     password_salt_len: int | None = 16
 
+    # 密钥缓存，可能是密钥实体或字节
     _key: Any | None = None
+    # 支持的最大块加密长度，0表示没有限制
     _max_crypt_len: int = 0
+    # 解密块所需的长度，0表示没有定义
     _decrypt_len: int = 0
+    # 指示当前不支持解密，默认无限制
     _cant_decrypt: bool = False
 
     def __del__(self):
@@ -81,14 +138,34 @@ class CipherFile(BaseModel):
 
     @property
     def locked(self):
+        """
+        当前是否已锁定
+
+        Returns:
+             当前是否已锁定
+
+        锁定的对象无法执行加解密操作
+        """
         return self._key is None
 
     def lock(self):
+        """锁定当前对象。"""
         if self._key is not None:
             erase(self._key)
             self._key = None
 
     def unlock(self, key: AnyStr = None, passphrase: str = None):
+        """
+        使用密钥解锁当前对象。
+
+        Args:
+            key: 密钥
+            passphrase: 密钥的解锁密码（若有）
+
+        Raises:
+            CmValueError: 密钥或解锁密码不正确或无法用于加解密过程
+            CmNotImplementedError: 未实现的密钥类型或加密方式
+        """
         if self.key_type == KeyType.PASSWORD:
             if isinstance(key, str):
                 self._key = key.encode('utf-8')
@@ -107,6 +184,15 @@ class CipherFile(BaseModel):
             raise CmNotImplementedError(f"unknown key_type: {self.key_type}")
 
     def set_key(self, key: AnyStr | None) -> bool:
+        """
+        设置密钥，仅用于初始化。
+
+        Args:
+            key: 密钥
+
+        Returns:
+            是否设置成功
+        """
         if self.key_hash is not None:
             return False
         if self.password_salt is None and self.key_type.need_salt_protect:
@@ -121,6 +207,17 @@ class CipherFile(BaseModel):
         return True
 
     def validate_key(self, key: AnyStr | None) -> bool:
+        """
+        验证密钥是否正确，仅用于存在密钥哈希的场景。
+
+        Args:
+            key: 密钥
+
+        Returns:
+            密钥是否正确
+
+        其返回仅供参考，不一定代表无法执行加解密操作。
+        """
         if isinstance(key, str):
             key = key.encode('utf-8')
         elif isinstance(key, bytes):
@@ -141,12 +238,53 @@ class CipherFile(BaseModel):
 
     def encrypt_stream(self, stream: BinaryIO, chunk_size: int, progress: CmProgress,
                        total: int = 0, concurrent_count: int = 1) -> Iterable[bytes]:
+        """
+        加密一个流。
+
+        Args:
+            stream: 字节流
+            chunk_size: 块大小
+            progress: 进度管理器
+            total: 流的总字节数
+            concurrent_count: 加密线程并发数
+
+        Returns:
+            加密后的字节，按块分割。
+
+        Raises:
+            CmValueError: 传参错误
+
+        仅在遍历字节时产生数据。
+
+        若当前加密迭代次数大于1，将在完成迭代后产生数据，迭代过程只能被进度管理器中断。
+        """
         if 0 < self._max_crypt_len < chunk_size:
             raise CmValueError('chunk_size too large')
         return self._iter_crypt_stream('encrypt', stream, chunk_size, progress, total, concurrent_count)
 
     def decrypt_stream(self, stream: BinaryIO, chunk_size: int, progress: CmProgress,
                        total: int = 0, concurrent_count: int = 1) -> Iterable[bytes]:
+        """
+        解密一个流。
+
+        Args:
+            stream: 字节流
+            chunk_size: 块大小
+            progress: 进度管理器
+            total: 流的总字节数
+            concurrent_count: 解密线程并发数
+
+        Returns:
+            解密后的字节，按块分割。
+
+        Raises:
+            CmRuntimeError: 状态错误
+            CmValueError: 传参错误
+
+        仅在遍历字节时产生数据。
+
+        若当前加密迭代次数大于1，将在完成迭代后产生数据，迭代过程只能被进度管理器中断。
+        """
         if self._cant_decrypt:
             raise CmRuntimeError('cannot decrypt')
         if 0 < self._decrypt_len < chunk_size:
@@ -155,6 +293,7 @@ class CipherFile(BaseModel):
 
     def _iter_crypt_stream(self, mode: Literal['encrypt', 'decrypt'], stream: BinaryIO, chunk_size: int,
                            progress: CmProgress, total: int = 0, concurrent_count: int = 1) -> Iterable[bytes]:
+        """迭代一个流"""
         title = '加密' if mode == 'encrypt' else '解密'
         raw_stream = stream
         if self.iter_count > 1:
@@ -187,6 +326,7 @@ class CipherFile(BaseModel):
 
     def _crypt_stream(self, func: Callable[[bytes], bytes], stream: BinaryIO, chunk_size: int,
                       concurrent_count: int = 1) -> Iterable[bytes]:
+        """对一个流执行指定的操作"""
         if concurrent_count > 1:
             if self.cipher_name.padding > 0:
                 raise CmValueError('padding cipher not support concurrent')
@@ -205,6 +345,7 @@ class CipherFile(BaseModel):
             yield func(chunk)
 
     def _encrypt(self, data: bytes) -> bytes:
+        """加密一段字节"""
         self._cipher()
         if self.cipher_name.padding > 0:
             data = fixed_bytes(data, self.cipher_name.padding)
@@ -216,6 +357,7 @@ class CipherFile(BaseModel):
         return data
 
     def _decrypt(self, data: bytes) -> bytes:
+        """解密一段字节"""
         self._cipher()
         if self._cant_decrypt:
             raise CmRuntimeError('cannot decrypt')
@@ -227,6 +369,7 @@ class CipherFile(BaseModel):
         return data.rstrip(b'\x00') if self.cipher_name.padding > 0 else data
 
     def _cipher(self):
+        """构建加密算法实例、初始化内部属性"""
         if self._key is None:
             raise RuntimeError(f'_key is None')
         self._max_crypt_len = 0
@@ -265,6 +408,7 @@ class CipherFile(BaseModel):
             raise CmNotImplementedError(f'unknown cipher name: {self.cipher_name}')
 
     def _gen_key_hash(self, key: AnyStr) -> bytes:
+        """计算密钥的哈希值"""
         if isinstance(key, str):
             data_to_hash = key.encode('utf-8')
         else:
@@ -277,6 +421,7 @@ class CipherFile(BaseModel):
         return data_to_hash
 
     def _key_hash(self, data=None):
+        """构建密钥哈希算法实例"""
         if self.key_hash_name == HashName.SHA1:
             return SHA1.new(data)
         elif self.key_hash_name == HashName.SHA256:

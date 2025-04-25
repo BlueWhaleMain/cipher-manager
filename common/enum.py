@@ -2,7 +2,12 @@ from enum import Enum
 
 
 class DescriptionStrEnum(str, Enum):
-    """ 字符串枚举 """
+    """
+    包含描述字段的字符串枚举
+
+    Attributes:
+        description: 描述
+    """
     description: str
 
     def __new__(cls, value, description=''):
