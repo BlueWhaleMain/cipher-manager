@@ -80,7 +80,6 @@ class Ui_MainWindow(object):
         self.action_hash_tools.setEnabled(False)
         self.action_hash_tools.setObjectName("action_hash_tools")
         self.action_import = QtGui.QAction(parent=MainWindow)
-        self.action_import.setEnabled(False)
         self.action_import.setObjectName("action_import")
         self.action_random_password = QtGui.QAction(parent=MainWindow)
         self.action_random_password.setObjectName("action_random_password")

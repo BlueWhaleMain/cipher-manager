@@ -275,7 +275,8 @@ class CipherFileTableView(QTableView):
             return
         with open(filepath, 'r') as f:
             for row in csv.reader(f):
-                self._cipher_file.append_row(row)
+                if row:
+                    self._cipher_file.append_row(row)
             self._edited = True
             self._refresh(reload=True)
 

@@ -230,9 +230,6 @@
    </property>
   </action>
   <action name="action_import">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>导入(&amp;I)</string>
    </property>

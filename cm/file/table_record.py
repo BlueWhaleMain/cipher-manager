@@ -121,7 +121,7 @@ class TableRecordCipherFile(CipherFile):
         Args:
             value: 明文行数据
         """
-        self.append([self._record_value_encrypt(col) if col else b'' for col in value])
+        self.records.append([self._record_value_encrypt(col) if col else b'' for col in value])
 
     def _record_value_encrypt(self, value: str) -> bytes:
         """加密单个值"""
