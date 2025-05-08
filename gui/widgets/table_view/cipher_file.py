@@ -388,7 +388,7 @@ class CipherFileTableView(QTableView):
                                        or protect_file.cipher_name == protect_file.cipher_name.PKCS1_V1_5) else 1000
             # 此处暂时简单评估加密复杂度，以不大于表格流畅迭代次数的复杂度积为准
             crypt_score = simple_encrypt_len * suggest_iter_count
-            if filesize * protect_file.iter_count > crypt_score:
+            if crypt_score / filesize < 1:
                 button = QMessageBox.question(self, self.tr('加密迭代次数过大'), self.tr('降低迭代次数？'),
                                               QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No |
                                               QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Yes)
