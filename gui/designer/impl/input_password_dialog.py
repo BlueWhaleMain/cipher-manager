@@ -29,7 +29,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QLineEdit, QWidget, QMessageBox, QDialog
 
 from cm import CmValueError
-from cm.error import CmRuntimeError
+from cm.error import CmRuntimeError, CmInterrupt
 from gui.common import ENCODINGS
 from gui.common.env import report_with_exception
 from gui.designer.input_password_dialog import Ui_InputPasswordDialog
@@ -104,17 +104,27 @@ class InputPasswordDialog(QDialog, Ui_InputPasswordDialog):
         self.plain_text_edit.clear()
 
     def _try_execute_validator(self, validator: Callable[[str], bool]) -> Callable[[str], bool]:
+        # 此处异常无法正常被外部捕获
+        @report_with_exception
         @functools.wraps(validator)
         def wrapper(*args, **kwargs) -> bool:
-            result = False
             try:
+                self.error_label.clear()
                 result = validator(*args, **kwargs)
                 self.error_label.hide()
+                return result
             except CmValueError as e:
                 self.error_label.setText(str(e))
                 self.error_label.show()
-            finally:
-                return result
+                return False
+            except CmInterrupt as e:
+                self.error_label.setText(self.tr('已取消 ') + str(e))
+                self.error_label.show()
+                return False
+            except BaseException:
+                self.error_label.setText(self.tr('未知异常'))
+                self.error_label.show()
+                raise
 
         return wrapper
 
