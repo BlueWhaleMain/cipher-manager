@@ -25,7 +25,8 @@ from datetime import timedelta
 from typing import TypeVar, Callable, ParamSpec, Generic, Iterable
 
 from PyQt6 import QtWidgets, QtCore, sip
-from PyQt6.QtWidgets import QProgressDialog, QApplication
+from PyQt6.QtCore import QCoreApplication
+from PyQt6.QtWidgets import QProgressDialog, QApplication, QMessageBox
 
 from cm.error import CmInterrupt
 from cm.progress import CmProgress
@@ -33,6 +34,10 @@ from gui.common.threading import DefaultCallableThread
 
 _P = ParamSpec("_P")
 _T = TypeVar('_T')
+
+
+def _tr(text: str) -> str:
+    return QCoreApplication.translate('progress', text)
 
 
 class _Future(Generic[_T]):
@@ -64,6 +69,8 @@ class _Future(Generic[_T]):
             raise self._exception
         return self._result
 
+# 进度条刷新率
+_INTERVAL = 100
 
 def execute_in_progress(self: QtWidgets.QWidget, fn: Callable[_P, _T], /, *args: _P.args,
                         cm_progress: CmProgress = None, **kwargs: _P.kwargs) -> _T:
@@ -72,26 +79,20 @@ def execute_in_progress(self: QtWidgets.QWidget, fn: Callable[_P, _T], /, *args:
     thread = DefaultCallableThread(self, fn, *args, **kwargs)
     thread.returned.connect(future.set_result)
     thread.excepted.connect(future.set_exception)
-    thread.start()
     progress = QtWidgets.QProgressDialog(self)
-    # 无限等待
     if cm_progress is None:
-        thread.done.connect(progress.accept)
-        progress.setWindowTitle('请等待')
+        # 无限等待
+        progress.canceled.connect(thread.quit)
+        progress.setWindowTitle(_tr('请等待'))
         progress.setRange(0, 0)
-        QApplication.processEvents()
-        progress.exec()
-        if progress.wasCanceled():
-            raise CmInterrupt
-        return future.result()
-
-    # 可跟踪进度
-    progress.canceled.connect(cm_progress.cancel)
-    progress.setWindowTitle('请稍等' if cm_progress.title is None else cm_progress.title)
-    progress.setRange(0, 100)
-    progress.setToolTip('0')
+    else:
+        # 可跟踪进度
+        progress.canceled.connect(cm_progress.cancel)
+        progress.setWindowTitle(_tr('请稍等') if cm_progress.title is None else cm_progress.title)
+        progress.setRange(0, 100)
+        progress.setToolTip('0')
     t = QtCore.QTimer(self)
-    t.setInterval(100)
+    t.setInterval(_INTERVAL)
 
     def progress_update():
         if future.done():
@@ -99,7 +100,15 @@ def execute_in_progress(self: QtWidgets.QWidget, fn: Callable[_P, _T], /, *args:
             if sip.isdeleted(progress):
                 return
             progress.accept()
-        progress.setWindowTitle('请稍等' if cm_progress.title is None else cm_progress.title)
+        elif thread.isFinished():
+            t.stop()
+            if sip.isdeleted(progress):
+                return
+            progress.close()
+        if not cm_progress:
+            # 无进度更新
+            return
+        progress.setWindowTitle(_tr('请稍等') if cm_progress.title is None else cm_progress.title)
         skip = int(progress.toolTip())
         current = cm_progress.current
         total = cm_progress.total
@@ -114,7 +123,28 @@ def execute_in_progress(self: QtWidgets.QWidget, fn: Callable[_P, _T], /, *args:
 
     t.timeout.connect(progress_update)
     t.start()
+    thread.start()
     progress.exec()
+    if not thread.isFinished():
+        while True:
+            wait_progress = QProgressDialog(self)
+            wait_progress.setWindowTitle(_tr('等待任务结束...'))
+            wait_progress.setRange(0, 0)
+            wait_progress.show()
+            while not thread.isFinished():
+                QApplication.processEvents()
+                # 确保线程退出，否则可能导致应用无法正常结束
+                thread.wait(_INTERVAL)
+                if wait_progress.wasCanceled():
+                    button = QMessageBox.warning(self, _tr('是否强制停止任务？'), _tr('该操作可能导致丢失正在处理的数据。'),
+                                                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                                 QMessageBox.StandardButton.No)
+                    if button == QMessageBox.StandardButton.Yes:
+                        thread.terminate()
+                    break
+            else:
+                break
+        wait_progress.accept()
     if progress.wasCanceled():
         raise CmInterrupt
     return future.result()
@@ -125,12 +155,16 @@ def each_in_steps(progress: QProgressDialog, steps: Iterable[_T], total: int = 0
     progress.setRange(0, total)
     progress.setValue(0)
     progress.show()
-    for step in steps:
-        yield step
-        value = progress.value()
-        progress.setValue(value + 1)
-        progress.setLabelText(f'{value} / {total}')
-        QApplication.processEvents()
-        if progress.wasCanceled():
-            break
+    try:
+        for step in steps:
+            yield step
+            value = progress.value()
+            progress.setValue(value + 1)
+            progress.setLabelText(f'{value} / {total}')
+            QApplication.processEvents()
+            if progress.wasCanceled():
+                break
+    except:
+        progress.close()
+        raise
     progress.accept()
