@@ -37,12 +37,10 @@ class CallableThread(QtCore.QThread, Generic[_T]):
     Attributes:
         returned: 任务已返回
         excepted: 任务抛出异常
-        done: 任务已结束
     """
     # pyqtSignal不支持泛型标志
     returned: QtCore.pyqtSignal = None
     excepted: QtCore.pyqtSignal = QtCore.pyqtSignal(BaseException)
-    done = QtCore.pyqtSignal(object)
 
     @abc.abstractmethod
     def _run(self) -> _T:
@@ -56,8 +54,6 @@ class CallableThread(QtCore.QThread, Generic[_T]):
                 self._run()
         except BaseException as e:
             self.excepted.emit(e)
-        finally:
-            self.done.emit(None)
 
     @classmethod
     def _inner_excepted(cls, e: BaseException) -> None:
