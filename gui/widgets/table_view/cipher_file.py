@@ -730,26 +730,16 @@ class CipherFileTableView(QTableView):
                 return False
             return True
         if cipher_file.key_hash is None:
-            key = InputPasswordDialog.getpass(self, self.tr('设置密码'), self.tr('加密密钥'),
-                                              cipher_file.key_hash is None, self._key_validator(cipher_file))
+            key = InputPasswordDialog.getpass(self, self.tr('设置密码'), self.tr('密码'), True)
         else:
-            key = InputPasswordDialog.getpass(self, self.tr('输入密码'), self.tr('解密密钥'),
-                                              cipher_file.key_hash is None, self._key_validator(cipher_file))
+            key = InputPasswordDialog.getpass(self, self.tr('输入密码'), self.tr('密码'), False,
+                                              cipher_file.validate_key)
         if key is None:
             return False
         if cipher_file.set_key(key):
             self._file_edited()
         cipher_file.unlock(key)
         return True
-
-    @classmethod
-    def _key_validator(cls, cipher_file: CipherFile):
-        @functools.wraps(cipher_file.unlock)
-        def wrapper(key: AnyStr):
-            cipher_file.unlock(key)
-            return True
-
-        return wrapper
 
     def _key_passphrase_validator(self, key: bytes, cipher_file: CipherFile):
         @functools.wraps(cipher_file.unlock)

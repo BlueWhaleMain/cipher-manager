@@ -157,7 +157,7 @@ class InputPasswordDialog(QDialog, Ui_InputPasswordDialog):
                 if self._result == result:
                     button = QMessageBox.question(self, self.tr('密码可能不正确'), self.tr('忽略并继续？'),
                                                   QMessageBox.StandardButton.Ignore | QMessageBox.StandardButton.Retry,
-                                                  QMessageBox.StandardButton.Retry).exec()
+                                                  QMessageBox.StandardButton.Retry)
                     if button == QMessageBox.StandardButton.Ignore:
                         return self._result
                 result = self._result
