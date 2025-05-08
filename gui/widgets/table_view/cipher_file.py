@@ -455,7 +455,8 @@ class CipherFileTableView(QTableView):
                     sub_progress.cancel()
             if sub_progress.wasCanceled():
                 progress.cancel()
-        self.resizeColumnsToContents()
+        if not progress.wasCanceled():
+            self.resizeColumnsToContents()
 
     def reload(self):
         """重新加载"""
