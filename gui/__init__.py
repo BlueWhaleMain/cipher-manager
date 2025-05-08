@@ -27,6 +27,6 @@ Cipher Manager GUI旨在提供用户友好的密码管理器应用及易于定�
 """
 __author__ = "BlueWhaleMain"
 
-version_info = (2, 1, '1')
+version_info = (2, 1, '2')
 
 __version__ = ".".join([str(x) for x in version_info])

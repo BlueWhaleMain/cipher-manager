@@ -34,7 +34,7 @@ from cm.file.table_record import TableRecordCipherFile
 
 __author__ = "BlueWhaleMain"
 
-version_info = (2, 0, '2')
+version_info = (2, 0, '3')
 
 __version__ = ".".join([str(x) for x in version_info])
 
