@@ -1,3 +1,33 @@
+# :bookmark: CipherManagerGUI 2.1.2
+
+## :sparkles: 功能变化
+
+* 现在会无限期等待未结束的任务并支持强制退出任务
+
+## :bug: 问题修复
+
+* 取消后仍然尝试调整列宽 # 880843dc
+* :recycle: 无限等待任务无法正确地返回空值 # c2cf3531
+* 密码校验无法正确地反映错误 # cd9b3e86
+* 改正可能会增加迭代次数的判断 # 47dd980f
+* 无限等待任务没有执行取消操作 # 803cb7e8
+* 任务与进度条窗口不同步 # 803cb7e8
+* 非阻塞任务失败后未自动关闭进度条 # 46201e32
+* 常规密码校验逻辑错误、提示文本不严谨 # b14174ec
+* 消息弹窗调用错误 # cbae552e
+* 导入功能无法使用 # 8d1d66af # 803cb7e8
+
+## 其他
+
+* :arrow_up: pydantic 2.11.3 -> 2.11.4
+* :arrow_up: qrcode 8.1 -> 8.2
+* :arrow_up: pymdown-extensions 10.14.3 -> 10.15
+* :globe_with_meridians: 扩充可翻译的文本内容
+
+**Full Changelog**: https://github.com/BlueWhaleMain/cipher-manager/compare/CipherManagerGUI-2.1.1...CipherManagerGUI-2.1.2
+
+---
+
 # :bookmark: CipherManagerGUI 2.1.1
 
 ## :tada: 主要变化
