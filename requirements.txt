@@ -1,12 +1,12 @@
 psutil==7.0.0
-pydantic==2.11.3
+pydantic==2.11.4
 pycryptodome==3.22.0
 pyotp==2.9.0
-qrcode==8.1
+qrcode==8.2
 PyQt6==6.9.0
 qt6-applications==6.5.0.2.3
 pillow==11.2.1
 markdown==3.8
-pymdown-extensions==10.14.3
+pymdown-extensions==10.15
 pyinstaller==6.13.0
 mypy==1.15.0
