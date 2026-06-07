@@ -435,9 +435,9 @@ class CipherFileTableView(QTableView):
         with open(filepath, 'wb') as f:
             # noinspection PyTypeChecker
             pickle.dump(self._cipher_file, f, self._cipher_file_protocol)
+        self.discard_change()
         self._filepath = filepath
-        self._edited = False
-        self._refresh()
+        self._refresh(True)
 
     def export_file(self) -> None:
         """导出文件记录"""
