@@ -1,6 +1,6 @@
 #  MIT License
 #
-#  Copyright (c) 2022-2025 BlueWhaleMain
+#  Copyright (c) 2022-2026 BlueWhaleMain
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to deal
@@ -65,6 +65,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.action_ren.triggered.connect(self._ren)
         self.action_close.triggered.connect(self._close_file)
 
+        self.action_merge.triggered.connect(self._merge_from_file)
         self.action_import.triggered.connect(self._import_file)
         self.action_export.triggered.connect(self._export_file)
         self.action_attribute.triggered.connect(self._file_attribute)
@@ -179,6 +180,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     @report_with_exception
     def _close_file(self, _):
         self._table_view.close_file()
+
+    @report_with_exception
+    def _merge_from_file(self, _):
+        self._table_view.merge_from_file()
 
     @report_with_exception
     def _import_file(self, _):
@@ -335,6 +340,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.action_ren.setEnabled(has_file)
         self.action_close.setEnabled(has_file)
 
+        self.action_merge.setEnabled(has_file)
         self.action_export.setEnabled(has_file)
         self.action_attribute.setEnabled(has_file)
 

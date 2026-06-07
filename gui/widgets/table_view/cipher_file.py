@@ -21,21 +21,23 @@
 #  SOFTWARE.
 #
 import csv
+import difflib
 import functools
 import logging
 import os
 import pickle
 import shutil
 from typing import AnyStr
+from io import StringIO
 
 from PyQt6.QtCore import pyqtSignal, Qt, QAbstractItemModel, QModelIndex, pyqtBoundSignal
-from PyQt6.QtGui import QAction, QIcon, QCursor, QStandardItem, QStandardItemModel
+from PyQt6.QtGui import QAction, QIcon, QCursor, QStandardItem, QStandardItemModel, QColor
 from PyQt6.QtWidgets import QMessageBox, QProgressDialog, QInputDialog, QStyledItemDelegate, QTableView, QWidget, \
     QHeaderView, QMenu, QFileDialog
 from PyQt6.sip import isdeleted
 
 from cm import file_load, CmValueError
-from cm.error import CmInterrupt
+from cm.error import CmInterrupt, CmNotImplementedError
 from cm.file.base import CipherFile
 from cm.file.protect import ProtectCipherFile
 from cm.file.table_record import TableRecordCipherFile
@@ -46,7 +48,9 @@ from gui.designer.impl.attribute_dialog import AttributeDialog
 from gui.designer.impl.input_password_dialog import InputPasswordDialog
 from gui.designer.impl.new_cipher_file_dialog import NewCipherFileDialog
 from gui.designer.impl.random_password_dialog import RandomPasswordDialog
+from gui.designer.impl.table_view_show_dialog import TableViewShowDialog
 from gui.designer.impl.text_show_dialog import TextShowDialog
+from gui.widgets.item.analyze import AnalyzeItem
 
 _LOG = logging.getLogger(__name__)
 
@@ -264,6 +268,93 @@ class CipherFileTableView(QTableView):
             self._cipher_file = file_load(data)
             self._filepath = filepath
         self._refresh()
+
+    def merge_from_file(self, filepath: str | None = None) -> None:
+        """从文件合并"""
+        if not filepath:
+            filepath, _ = QFileDialog.getOpenFileName(self, self.tr('选择加密定义文件'), self.current_dir,
+                                                      self.tr('Pickle文件(*.pkl);;所有文件(*)'))
+            if not filepath:
+                return
+
+        with open(filepath, 'rb') as f:
+            try:
+                data = pickle.load(f)
+            except Exception as e:
+                raise CmValueError(self.tr('文件格式异常')) from e
+
+        cipher_file = file_load(data)
+        if not isinstance(cipher_file, TableRecordCipherFile):
+            raise CmValueError(self.tr('只支持比较表格文件'))
+
+        if not self._unlock_cipher_file(cipher_file):
+            return
+
+        if not self._suggest_unlock():
+            return
+
+        progress = QProgressDialog(self)
+        progress.setWindowTitle(self.tr('解密并读取原文件...'))
+        so1 = StringIO()
+        csv.writer(so1).writerows(each_in_steps(progress, self._cipher_file.reader(), len(self._cipher_file.records)))
+
+        progress = QProgressDialog(self)
+        progress.setWindowTitle(self.tr('解密并读取目标文件...'))
+        so2 = StringIO()
+        csv.writer(so2).writerows(each_in_steps(progress, cipher_file.reader(), len(cipher_file.records)))
+
+        rows1 = so1.getvalue().splitlines()
+        rows2 = so2.getvalue().splitlines()
+
+        progress = QProgressDialog(self)
+        progress.setWindowTitle(self.tr('比较中...'))
+
+        model = QStandardItemModel()
+        last_line = ''
+        for dn in each_in_steps(progress, difflib.ndiff(rows1, rows2)):
+            prefix = dn[0]
+            content = dn[1:]
+
+            if prefix == ' ':
+                model.appendRow([])
+                cols = content.split(',')
+                for col_index in range(0, len(cols)):
+                    item = AnalyzeItem(cols[col_index])
+                    model.setItem(model.rowCount() - 1, col_index, item)
+            elif prefix == '+':
+                model.appendRow([])
+                cols = content.split(',')
+                for col_index in range(0, len(cols)):
+                    item = AnalyzeItem(cols[col_index])
+                    item.setBackground(QColor.fromRgb(0x447152))
+                    model.setItem(model.rowCount() - 1, col_index, item)
+            elif prefix == '-':
+                model.appendRow([])
+                cols = content.split(',')
+                for col_index in range(0, len(cols)):
+                    item = AnalyzeItem(cols[col_index])
+                    item.setBackground(QColor.fromRgb(0x656E76))
+                    model.setItem(model.rowCount() - 1, col_index, item)
+            elif prefix == '?':
+                model.appendRow([])
+                space_num = len(content) - len(content.lstrip())
+                skipped_content = last_line[0:space_num]
+                skipped_count = len(skipped_content.split(','))
+
+                for i in range(skipped_count):
+                    item = QStandardItem()
+                    item.setEnabled(False)
+                    model.setItem(model.rowCount() - 1, i, item)
+
+                remain = content[space_num:]
+                model.setItem(model.rowCount() - 1, skipped_count, AnalyzeItem(remain.strip()))
+            else:
+                progress.cancel()
+                raise CmNotImplementedError(prefix, dn)
+
+            last_line = dn
+
+        TableViewShowDialog(self).show_item_model(self.tr('区别'), model)
 
     def import_file(self) -> None:
         """导入文件中的记录"""

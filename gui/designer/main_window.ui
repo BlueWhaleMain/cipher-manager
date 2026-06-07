@@ -29,7 +29,7 @@
      <x>0</x>
      <y>0</y>
      <width>799</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_file">
@@ -52,6 +52,7 @@
     <addaction name="action_ren"/>
     <addaction name="action_close"/>
     <addaction name="separator"/>
+    <addaction name="action_merge"/>
     <addaction name="action_import"/>
     <addaction name="action_export"/>
     <addaction name="action_attribute"/>
@@ -479,6 +480,14 @@
    </property>
    <property name="menuRole">
     <enum>QAction::NoRole</enum>
+   </property>
+  </action>
+  <action name="action_merge">
+   <property name="text">
+    <string>比较/合并（Beta）(&amp;M)</string>
+   </property>
+   <property name="statusTip">
+    <string>从文件中合并</string>
    </property>
   </action>
  </widget>
