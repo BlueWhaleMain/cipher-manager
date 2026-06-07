@@ -24,6 +24,7 @@ if not "%2"=="" (
     if %errorlevel% GTR 0 goto end
     rem echo 删除不兼容的运行时库
     rem del /f /q %~dp0dist\%name%\VCRUNTIME140.dll
+    .\.venv\Scripts\python -m pip freeze > %~dp0dist\%name%\requirements.txt
     if not exist %~dp0dist\Publish (
         echo 创建发布文件夹
         md %~dp0dist\Publish
