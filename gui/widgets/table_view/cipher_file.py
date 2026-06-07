@@ -47,6 +47,7 @@ from gui.common.progress import execute_in_progress, each_in_steps
 from gui.designer.impl.attribute_dialog import AttributeDialog
 from gui.designer.impl.input_password_dialog import InputPasswordDialog
 from gui.designer.impl.new_cipher_file_dialog import NewCipherFileDialog
+from gui.designer.impl.otp_dialog import OtpDialog
 from gui.designer.impl.random_password_dialog import RandomPasswordDialog
 from gui.designer.impl.table_view_show_dialog import TableViewShowDialog
 from gui.designer.impl.text_show_dialog import TextShowDialog
@@ -65,6 +66,7 @@ class CipherFileTableView(QTableView):
         self._cipher_file_protocol: int = pickle.DEFAULT_PROTOCOL
         self._filepath: str | None = None
         self._edited: bool = False
+        self._last_opened_keypath: str | None = None
         self._new_cipher_file_dialog: NewCipherFileDialog = NewCipherFileDialog(self)
         self._attribute_dialog: AttributeDialog = AttributeDialog(self)
         self._text_show_dialog: TextShowDialog = TextShowDialog(self)
@@ -88,6 +90,10 @@ class CipherFileTableView(QTableView):
         self.action_generate = QAction(self)
         self.action_generate.setText(self.tr('生成'))
         self.context_menu.addAction(self.action_generate)
+
+        self.action_show_with_otp = QAction(self)
+        self.action_show_with_otp.setText(self.tr('作为密钥打开OTP'))
+        self.context_menu.addAction(self.action_show_with_otp)
 
         self.context_menu.addSeparator()
 
@@ -146,6 +152,7 @@ class CipherFileTableView(QTableView):
         self.action_decrypt_row.triggered.connect(self._decrypt_row)
         self.action_decrypt_col.triggered.connect(self._decrypt_col)
         self.action_generate.triggered.connect(self._generate_item)
+        self.action_show_with_otp.triggered.connect(self._show_with_otp)
         self.action_row_insert.triggered.connect(self._row_insert)
         self.action_col_insert.triggered.connect(self._col_insert)
         self.action_row_go_up.triggered.connect(self._row_go_up)
@@ -454,8 +461,6 @@ class CipherFileTableView(QTableView):
 
     def encrypt_file(self) -> None:
         """弹出对话框加密指定文件"""
-        if not self._suggest_unlock():
-            return
         protect_file = ProtectCipherFile.from_cipher_file(self._cipher_file)
         filepath, _ = QFileDialog.getOpenFileName(self, self.tr('选择要加密的文件'), self.current_dir,
                                                   self.tr('所有文件(*)'))
@@ -489,6 +494,8 @@ class CipherFileTableView(QTableView):
                                                                ';;所有文件(*)'))
         if not dist_filepath:
             return
+        if not self._suggest_unlock():
+            return
         cm_progress = CmProgress(title=self.tr('加密文件中'))
         execute_in_progress(self, protect_file.pack_to, filepath, dist_filepath, cm_progress, 2048,
                             cm_progress=cm_progress)
@@ -497,12 +504,12 @@ class CipherFileTableView(QTableView):
 
     def decrypt_file(self) -> None:
         """弹出对话框解密指定文件"""
-        self_decrypt = self._suggest_unlock()
         filepath, _ = QFileDialog.getOpenFileName(self, self.tr('选择要解密的文件'), self.current_dir,
                                                   self.tr('管理器保护文件(*.cm-protect);;所有文件(*)'))
         if not filepath:
             return
         protect_file = ProtectCipherFile.from_protect_file(filepath)
+        self_decrypt = self._suggest_unlock()
         if self_decrypt:
             if not protect_file.try_unlock_from_cipher_file(self._cipher_file):
                 if not self._unlock_cipher_file(protect_file):
@@ -510,12 +517,20 @@ class CipherFileTableView(QTableView):
         else:
             if not self._unlock_cipher_file(protect_file):
                 return
-        dist_filepath, _ = QFileDialog.getSaveFileName(self, self.tr('选择保存位置'),
-                                                       os.path.join(self.current_dir,
-                                                                    protect_file.decrypt_filename()),
-                                                       self.tr('所有文件(*)'))
+        try:
+            dist_filepath, _ = QFileDialog.getSaveFileName(self, self.tr('选择保存位置'),
+                                                           os.path.join(self.current_dir,
+                                                                        protect_file.decrypt_filename() or ''),
+                                                           self.tr('所有文件(*)'))
+        except Exception as e:
+            button = QMessageBox.question(self, self.tr('请选择'), f'解密已经失败：{e}，你想要查看该文件的元数据吗？')
+            if button == QMessageBox.StandardButton.Yes:
+                self._attribute_dialog.load_file(protect_file)
+            raise
         if not dist_filepath:
             return
+        if self_decrypt:
+            self._suggest_unlock()
         cm_progress = CmProgress(title=self.tr('解密文件中'))
         execute_in_progress(self, protect_file.unpack_to, dist_filepath, cm_progress, 2048,
                             cm_progress=cm_progress)
@@ -628,6 +643,12 @@ class CipherFileTableView(QTableView):
         text = self._random_password_dialog.manual_spawn()
         if text:
             self._set(index, text)
+
+    @report_with_exception
+    def _show_with_otp(self, _):
+        text = self._get(self.currentIndex())
+        if text:
+            OtpDialog.show_with(self, text)
 
     @report_with_exception
     def _row_insert(self, _):
@@ -815,7 +836,7 @@ class CipherFileTableView(QTableView):
 
     def _unlock_cipher_file(self, cipher_file: CipherFile) -> bool:
         while cipher_file.key_type.is_file:
-            filepath, _ = QFileDialog.getOpenFileName(self, self.tr('选择包含密钥的文件'), self.current_dir,
+            filepath, _ = QFileDialog.getOpenFileName(self, self.tr('选择包含密钥的文件'), self._last_opened_keypath,
                                                       self.tr('所有文件(*)'
                                                               ';;DER证书(*.der *.cer *.cert)'
                                                               ';;ASCII PEM证书(*.pem *.asc)'
@@ -825,6 +846,7 @@ class CipherFileTableView(QTableView):
                 return False
             with open(filepath, 'rb') as f:
                 key = f.read()
+            self._last_opened_keypath = filepath
             if cipher_file.set_key(key):
                 self._file_edited()
             if not cipher_file.validate_key(key):

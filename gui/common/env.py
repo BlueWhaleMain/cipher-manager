@@ -29,7 +29,7 @@ import sys
 from types import TracebackType
 from typing import Any, Callable
 
-from PyQt6.QtCore import QThread
+from PyQt6.QtCore import QThread, pyqtSignal, QObject
 from PyQt6.QtWidgets import QApplication, QMessageBox
 from psutil import Process
 
@@ -56,6 +56,13 @@ for arg in CMDLINE:
 
 # 禁用内存擦除，在Qt中极其不稳定
 cm.base.erase_disabled = True
+
+
+class GlobalSignal(QObject):
+    app_try_lock: pyqtSignal = pyqtSignal()
+
+
+GLOBAL_SIGNAL = GlobalSignal()
 
 
 def find_path(path: str, validator=os.path.exists, external=()) -> str:

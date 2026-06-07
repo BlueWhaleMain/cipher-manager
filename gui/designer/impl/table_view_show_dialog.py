@@ -24,7 +24,7 @@ from PyQt6 import QtWidgets
 from PyQt6.QtGui import QStandardItemModel
 
 from cm.error import CmInterrupt
-from gui.common.env import report_with_exception
+from gui.common.env import report_with_exception, GLOBAL_SIGNAL
 from gui.designer.table_view_show_dialog import Ui_table_view_show_dialog
 
 
@@ -43,7 +43,7 @@ class TableViewShowDialog(QtWidgets.QDialog, Ui_table_view_show_dialog):
         super().accept()
 
     def show_item_model(self, title: str, item_model: QStandardItemModel | None,
-                        editable: bool = False) -> QStandardItemModel | None:
+                        editable: bool = False, protect_content: bool = True) -> QStandardItemModel | None:
         self.setWindowTitle(title)
         if item_model is None:
             if editable:
@@ -55,6 +55,9 @@ class TableViewShowDialog(QtWidgets.QDialog, Ui_table_view_show_dialog):
             self.button_box.setStandardButtons(QtWidgets.QDialogButtonBox.StandardButton.Save
                                                | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
         self.table_view.resizeColumnsToContents()
+
+        if protect_content:
+            GLOBAL_SIGNAL.app_try_lock.connect(self.reject)
 
         self.exec()
         if editable:

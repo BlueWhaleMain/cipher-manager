@@ -282,7 +282,7 @@
     <string>自动锁定</string>
    </property>
    <property name="statusTip">
-    <string>失去焦点时自动锁定工作区</string>
+    <string>失去焦点或离开时自动锁定工作区并关闭所有可能包含敏感内容的窗口</string>
    </property>
   </action>
   <action name="action_about">

@@ -230,7 +230,7 @@ class Ui_MainWindow(object):
         self.action_notes_mode.setStatusTip(_translate("MainWindow", "窗口固定在最前，无边框"))
         self.action_notes_mode.setShortcut(_translate("MainWindow", "F12"))
         self.action_auto_lock.setText(_translate("MainWindow", "自动锁定"))
-        self.action_auto_lock.setStatusTip(_translate("MainWindow", "失去焦点时自动锁定工作区"))
+        self.action_auto_lock.setStatusTip(_translate("MainWindow", "失去焦点或离开时自动锁定工作区并关闭所有可能包含敏感内容的窗口"))
         self.action_about.setText(_translate("MainWindow", "关于 CipherMangerGUI"))
         self.action_about.setStatusTip(_translate("MainWindow", "关于 CipherMangerGUI"))
         self.action_about.setShortcut(_translate("MainWindow", "F1"))

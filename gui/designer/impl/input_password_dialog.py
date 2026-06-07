@@ -30,7 +30,7 @@ from PyQt6.QtWidgets import QLineEdit, QWidget, QMessageBox, QDialog
 from cm import CmValueError
 from cm.error import CmRuntimeError, CmInterrupt
 from gui.common import ENCODINGS
-from gui.common.env import report_with_exception
+from gui.common.env import report_with_exception, GLOBAL_SIGNAL
 from gui.designer.input_password_dialog import Ui_InputPasswordDialog
 
 
@@ -131,15 +131,24 @@ class InputPasswordDialog(QDialog, Ui_InputPasswordDialog):
         # noinspection PyTypeChecker
         return wrapper
 
+    def _try_lock(self):
+        self.line_edit.clear()
+        self.plain_text_edit.clear()
+
     @classmethod
     def getpass(cls, parent: QWidget, title: str = 'Enter password', placeholder: str = 'password',
-                verify: bool = False, validator: Callable[[AnyStr | None], bool] | None = None) -> AnyStr | None:
+                verify: bool = False, validator: Callable[[AnyStr | None], bool] | None = None,
+                protect_content: bool = True) -> AnyStr | None:
         """弹出对话框输入密码，支持二次确认与验证内容"""
         self = cls(parent)
         if title:
             self.setWindowTitle(title)
         self.line_edit.setPlaceholderText(placeholder)
         self.plain_text_edit.setPlaceholderText(placeholder)
+
+        if protect_content:
+            GLOBAL_SIGNAL.app_try_lock.connect(self._try_lock)
+
         self.exec()
         if self._result is None:
             return None

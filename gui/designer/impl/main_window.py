@@ -21,13 +21,13 @@
 #  SOFTWARE.
 #
 from Crypto.PublicKey import RSA
-from PyQt6.QtCore import QUrl, QEvent, Qt
+from PyQt6.QtCore import QUrl, Qt, QEvent, QTimer, QPropertyAnimation
 from PyQt6.QtGui import QDesktopServices, QStandardItemModel, QDropEvent, QDragEnterEvent, QCloseEvent, QHideEvent, \
-    QKeyEvent, QCursor
-from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox, QInputDialog, QFileDialog
+    QKeyEvent, QCursor, QMouseEvent
+from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox, QInputDialog, QFileDialog, QSystemTrayIcon
 
 from cm.error import CmNotImplementedError
-from gui.common.env import report_with_exception
+from gui.common.env import report_with_exception, GLOBAL_SIGNAL
 from gui.common.progress import execute_in_progress
 from gui.designer.impl.about_dialog import AboutDialog
 from gui.designer.impl.basic_type_conversion_dialog import BasicTypeConversionDialog
@@ -47,10 +47,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self._name = self.windowTitle()
+        self._system_tray_icon = QSystemTrayIcon(self)
+        self._system_tray_icon.setIcon(self.windowIcon())
+        self._system_tray_icon.show()
         self._table_view = CipherFileTableView(self.central_widget)
         self.grid_layout.addWidget(self._table_view, 0, 0, 1, 1)
-        self.model = QStandardItemModel(self._table_view)
-        self._table_view.setModel(self.model)
+        self._table_view.setModel(QStandardItemModel(self._table_view))
+        self._idle_max = 30
+        self._idle_show_threshold = 10
+        self._idle_remain_seconds = self._idle_max
+        self._idle_timer = QTimer(self)
+        self._idle_timer.timeout.connect(self._idle_timeout)
+        self._idle_timer.start(1000)
         self._search_dialog = SearchDialog(self._table_view, self)
         self._about_dialog: AboutDialog = AboutDialog(self)
         self._random_password_dialog: RandomPasswordDialog = RandomPasswordDialog(self)
@@ -100,11 +108,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     @report_with_exception
     def init(self, app: QApplication):
         """初始化操作"""
+        app.applicationStateChanged.connect(self._application_state_changed)
+        app.installEventFilter(self)
+
         arguments = app.arguments()
         if len(arguments) > 1:
             self._open_file_(arguments[1])
         else:
             self._refresh_()
+
+    @report_with_exception
+    def eventFilter(self, o, e: QEvent) -> bool:
+        if isinstance(e, QMouseEvent) or isinstance(e, QKeyEvent):
+            should_refresh = False
+            if self._idle_remain_seconds <= self._idle_show_threshold:
+                should_refresh = True
+            self._idle_remain_seconds = self._idle_max
+            if should_refresh:
+                self._opacity_fade(self.windowOpacity(), 1, 1000)
+                self._refresh_()
+        return False
 
     @report_with_exception
     def dropEvent(self, e: QDropEvent) -> None:
@@ -138,15 +161,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         super().closeEvent(e)
 
     @report_with_exception
-    def changeEvent(self, e: QEvent) -> None:
-        if e.type() in (QEvent.Type.ActivationChange, QEvent.Type.WindowStateChange):
-            self._auto_save_()
-            self._try_lock_()
-        if self.isVisible():
-            self._refresh_()
-        super().changeEvent(e)
-
-    @report_with_exception
     def hideEvent(self, e: QHideEvent) -> None:
         self._auto_save_()
         self._try_lock_()
@@ -158,6 +172,31 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.action_notes_mode.setChecked(False)
             self._notes_mode_(False)
         super().keyPressEvent(e)
+
+    @report_with_exception
+    def _application_state_changed(self, state: Qt.ApplicationState):
+        if state != Qt.ApplicationState.ApplicationActive:
+            self._auto_save_()
+            self._try_lock_()
+        if self.isVisible():
+            self._refresh_()
+
+    @report_with_exception
+    def _idle_timeout(self):
+        if self._idle_remain_seconds > -1:
+            self._idle_remain_seconds -= 1
+        if self._idle_remain_seconds == 0:
+            self._try_lock_()
+            self._idle_remain_seconds = self._idle_max
+            self._refresh_()
+        elif 0 < self._idle_remain_seconds <= self._idle_show_threshold:
+            # 自动锁定且确实未锁定时才有淡出特效，为防万一，其他情况仍可能尝试自动锁定，只是不显示淡出特效以减少打扰
+            if not self.action_auto_lock.isChecked() or self._table_view.locked is not False:
+                return
+
+            if self._idle_remain_seconds == self._idle_show_threshold:
+                self._opacity_fade(self.windowOpacity(), 0.1, self._idle_remain_seconds * 1000)
+            self._refresh_()
 
     @report_with_exception
     def _new_file(self, _):
@@ -293,22 +332,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._table_view.auto_save()
 
     def _try_lock_(self):
+        GLOBAL_SIGNAL.app_try_lock.emit()
+
         # 没有选择任何文件
         if not self._table_view.has_file:
             return
         # 未启用自动锁定
         if not self.action_auto_lock.isChecked():
             return
-        # 存在活动窗口，不视为离开应用
-        if QApplication.activeWindow() is not None:
-            return
-        # 存在模态窗口，无法锁定应用
-        if QApplication.modalWindow() is not None:
-            QApplication.alert(self)
-            return
-        self._table_view.lock()
 
-    def _open_file_(self, filepath: str = None):
+        app = QApplication.instance()
+        assert isinstance(app, QApplication)
+        if self._table_view.lock() and app.applicationState() != Qt.ApplicationState.ApplicationActive:
+            self._system_tray_icon.showMessage(self.tr('提示'), self.tr('已锁定'))
+
+    def _open_file_(self, filepath: str | None = None):
         self._table_view.open_file(filepath)
 
     def _notes_mode_(self, selected):
@@ -326,12 +364,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self._table_view.locked:
             return self.tr('已锁定')
         if self.action_auto_lock.isChecked():
-            if self._table_view.has_file and QApplication.modalWindow() is not None:
-                return self.tr('当前无法锁定工作区')
+            if 0 < self._idle_remain_seconds < self._idle_show_threshold:
+                return self.tr('即将于{}秒后锁定').format(self._idle_remain_seconds)
             return self.tr('自动锁定已开启')
         return ''
 
+    def _opacity_fade(self, from_val: float, to_val: float, duration: int):
+        self._opacity_fade_animation = QPropertyAnimation(self, b'windowOpacity')
+        self._opacity_fade_animation.stop()
+        self._opacity_fade_animation.setDuration(duration)
+        self._opacity_fade_animation.setStartValue(from_val)
+        self._opacity_fade_animation.setEndValue(to_val)
+        self._opacity_fade_animation.start()
+
     def _refresh_(self):
+        if self._idle_remain_seconds > self._idle_show_threshold:
+            if self.windowOpacity() < 1:
+                self._opacity_fade(self.windowOpacity(), 1, 100)
+
         self.setWindowTitle(f'{"*" if self._table_view.edited else ""}'
                             f'{f"{self._table_view.filepath} - " if self._table_view.filepath else ""}'
                             f'{self._name}'

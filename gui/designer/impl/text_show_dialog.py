@@ -22,7 +22,7 @@
 #
 from PyQt6 import QtWidgets
 
-from gui.common.env import report_with_exception
+from gui.common.env import report_with_exception, GLOBAL_SIGNAL
 from cm.error import CmInterrupt
 from gui.designer.text_show_dialog import Ui_text_show_dialog
 
@@ -41,7 +41,7 @@ class TextShowDialog(QtWidgets.QDialog, Ui_text_show_dialog):
         self.close()
         super().accept()
 
-    def show_text(self, title: str, text: str | None, editable: bool = False) -> str | None:
+    def show_text(self, title: str, text: str | None, editable: bool = False, protect_content: bool = True) -> str | None:
         self.setWindowTitle(title)
         if text is None:
             if not editable:
@@ -52,10 +52,15 @@ class TextShowDialog(QtWidgets.QDialog, Ui_text_show_dialog):
                 self.plain_text_edit.setPlaceholderText(text)
         if editable:
             self.plain_text_edit.setReadOnly(False)
+            # noinspection PyTypeChecker
             self.button_box.setStandardButtons(QtWidgets.QDialogButtonBox.StandardButton.Save
                                                | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
+        if protect_content:
+            GLOBAL_SIGNAL.app_try_lock.connect(self.reject)
+
         self.exec()
         if editable:
             if self._accepted:
                 return self.plain_text_edit.toPlainText()
             raise CmInterrupt
+        return None

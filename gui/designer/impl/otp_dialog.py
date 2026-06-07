@@ -24,19 +24,20 @@ import datetime
 import hashlib
 import json
 import os
-import shutil
 import typing
+from io import BytesIO
 
 import pydantic
 import pyotp
 import qrcode
 from PyQt6 import QtWidgets, QtCore, QtGui
+from PyQt6.QtWidgets import QWidget
 
-from gui.common.env import report_with_exception
+from cm.error import CmRuntimeError
+from gui.common.env import report_with_exception, GLOBAL_SIGNAL
 from gui.designer.impl.image_show_dialog import ImageShowDialog
 from gui.designer.otp_dialog import Ui_otp_dialog
 
-_OTP_QRCODE_TMP_FILENAME = 'otp_qrcode.tmp'
 _first_algo = 'SHA1'
 _algo = []
 for x in hashlib.algorithms_available:
@@ -89,6 +90,15 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
         self.generate_totp_qrcode_push_button.clicked.connect(self._generate_totp_qrcode)
         self.generate_totp_code_push_button.clicked.connect(self._generate_totp_code)
         self.verify_totp_code_push_button.clicked.connect(self._verify_totp_code)
+        GLOBAL_SIGNAL.app_try_lock.connect(self.reject)
+
+    @classmethod
+    def show_with(cls, parent: QWidget, code: str):
+        self = cls(parent)
+        self.cipher_plain_text_edit.setPlainText(code)
+        self.cipher_plain_text_edit.setDisabled(True)
+        self.lock_cipher_check_box.setChecked(True)
+        self.show()
 
     @report_with_exception
     def _import_from_text_file(self, _):
@@ -152,6 +162,7 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
             self._hotp = pyotp.HOTP(s, digits, digest)
             self.hotp_code_line_edit.setInputMask('9' * digits)
             self._totp = pyotp.TOTP(s, digits, digest)
+            assert self._totp is not None
             self.time_slice_spin_box.blockSignals(True)
             self.time_slice_spin_box.setValue(self._totp.interval)
             self.time_slice_spin_box.blockSignals(False)
@@ -184,9 +195,9 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
             if self.auto_grow_step_check_box.isChecked():
                 self.step_spin_box.setValue(self.step_spin_box.value() + 1)
             self.hotp_code_line_edit.setText(self._hotp.at(self.step_spin_box.value()))
-        except Exception:
+        except Exception as e:
             self.lock_cipher_check_box.setChecked(False)
-            raise
+            raise CmRuntimeError(self.tr('生成失败')) from e
 
     @report_with_exception
     def _verify_hotp_code(self, _):
@@ -199,12 +210,14 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
                 QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information, '成功', '校验通过', parent=self).exec()
             else:
                 QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '失败', '动态码错误', parent=self).exec()
-        except Exception:
+        except Exception as e:
             self.lock_cipher_check_box.setChecked(False)
-            raise
+            raise CmRuntimeError(self.tr('校验失败')) from e
 
     @report_with_exception
     def _totp_timer_timeout(self):
+        assert self._totp is not None, self.tr('TOTP状态异常')
+
         if self.date_time_edit_check_box.isChecked():
             return
         self.date_time_edit.setDateTime(datetime.datetime.now())
@@ -215,9 +228,9 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
                 code = self._totp.at(timestamp)
                 if self.totp_code_line_edit.text() != code:
                     self.totp_code_line_edit.setText(code)
-            except Exception:
+            except Exception as e:
                 self.lock_cipher_check_box.setChecked(False)
-                raise
+                raise CmRuntimeError(self.tr('生成失败')) from e
             value = self._totp.interval - timestamp % self._totp.interval
             self.time_remainder_progress_bar.setValue(value)
             self.time_remainder_progress_bar.setStyleSheet(
@@ -256,10 +269,10 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
                                   parent=self).exec()
             return
         try:
-            self.totp_code_line_edit.setText(self._totp.at(self.date_time_edit.dateTime().toTime_t()))
-        except Exception:
+            self.totp_code_line_edit.setText(self._totp.at(self.date_time_edit.dateTime().toSecsSinceEpoch()))
+        except Exception as e:
             self.lock_cipher_check_box.setChecked(False)
-            raise
+            raise CmRuntimeError(self.tr('生成失败')) from e
 
     @report_with_exception
     def _verify_totp_code(self, _):
@@ -272,13 +285,13 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
                 QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information, '成功', '校验通过', parent=self).exec()
             else:
                 QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, '失败', '动态码错误', parent=self).exec()
-        except Exception:
+        except Exception as e:
             self.lock_cipher_check_box.setChecked(False)
-            raise
+            raise CmRuntimeError(self.tr('校验失败')) from e
 
     def _generate_otp_qrcode(self, url: str, title: str):
-        with open(_OTP_QRCODE_TMP_FILENAME, 'wb') as f:
-            qrcode.make(url).save(f)
+        bo = BytesIO()
+        qrcode.make(url).save(bo)
 
         @report_with_exception
         def _save(_):
@@ -286,8 +299,9 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
                                                                 'PNG文件(*.png);;所有文件(*)')
             if not filepath:
                 return
-            shutil.copy(_OTP_QRCODE_TMP_FILENAME, filepath)
+            with open(filepath, 'wb') as f:
+                f.write(bo.getvalue())
 
-        self._image_show_dialog.init().with_save_button(_save).show_image(
-            title, QtGui.QPixmap(_OTP_QRCODE_TMP_FILENAME))
-        os.remove(_OTP_QRCODE_TMP_FILENAME)
+        image = QtGui.QPixmap()
+        image.loadFromData(bo.getvalue())
+        self._image_show_dialog.init().with_save_button(_save).show_image(title, image)

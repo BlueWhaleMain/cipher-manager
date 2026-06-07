@@ -24,6 +24,7 @@ import typing
 
 from PyQt6 import QtWidgets, QtGui
 
+from gui.common.env import GLOBAL_SIGNAL
 from gui.designer.image_show_dialog import Ui_image_show_dialog
 
 
@@ -54,17 +55,22 @@ class ImageShowDialog(QtWidgets.QDialog, Ui_image_show_dialog):
         self.button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Save).clicked.connect(save_cb)
         return self
 
-    def show_image(self, title: str, pixmap: QtGui.QPixmap) -> int:
+    def show_image(self, title: str, pixmap: QtGui.QPixmap, protect_content: bool = True) -> int:
         """
         显示图像
 
         Args:
             title: 标题
             pixmap: 图像
+            protect_content: 保护显示内容
 
         Returns:
             是否确认
         """
         self.setWindowTitle(title)
         self.image_label.setPixmap(pixmap)
+
+        if protect_content:
+            GLOBAL_SIGNAL.app_try_lock.connect(self.reject)
+
         return self.exec()
