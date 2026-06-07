@@ -19,7 +19,8 @@ if not "%2"=="" (
 		rd /s /q %~dp0dist\%name%\.
 	)
     echo build对象：%~dp0%1
-    .\.venv\Scripts\pyinstaller %name%.spec
+    .\.venv\Scripts\python -m pip install -r requirements.txt
+    .\.venv\Scripts\python .\.venv\Scripts\pyinstaller.exe %name%.spec
     echo %errorlevel%
     if %errorlevel% GTR 0 goto end
     rem echo 删除不兼容的运行时库
@@ -38,7 +39,7 @@ if not "%2"=="" (
 		del /f /q %~dp0dist\Publish\%name%-%ver%-win32.zip
 	)
 	echo 压缩文件...
-	zip.py -i %~dp0dist\%name% -o %~dp0dist\Publish -n %name%-%ver%-win32.zip && attrib +r %~dp0dist\Publish\%name%-%ver%-win32.zip
+	.\.venv\Scripts\python zip.py -i %~dp0dist\%name% -o %~dp0dist\Publish -n %name%-%ver%-win32.zip && attrib +r %~dp0dist\Publish\%name%-%ver%-win32.zip
 	echo 清理临时文件...
 	rd /s /q %~dp0dist\%name%\.
 ) else (

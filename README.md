@@ -22,8 +22,8 @@
 
 ## 依赖
 
-- Python 3.13或更高版本
-- UPX
+- Python 3.14或更高版本
+- [UPX](https://github.com/upx/upx/releases/latest)
   - 仅构建时使用
 
 ## 快速开始

@@ -1,3 +1,44 @@
+# :bookmark: CipherManagerGUI 2.2.0
+
+## :tada: 主要变化
+
+* :sparkles: 增加比较/合并功能，初步实现差异比对
+* :lock: 修复应用显示模态窗口时无法锁定的问题，以后此类情况均视为安全漏洞
+* :construction: 暂时移将解锁操作移动至实际解密操作附近以确保功能，将来可能会重构解锁流程
+* :recycle: Python 3.14
+
+## :sparkles: 功能变化
+
+* 现在应用会在30秒无操作后锁定，锁定操作会覆盖所有可能包含敏感内容的窗体
+* :children_crossing: 在应用非活动时，会将锁定操作通知到用户
+* :children_crossing: 支持将单元格内容用于快速启动OTP功能
+* :children_crossing: 支持记忆上一次打开证书文件的位置
+* :children_crossing: 从更可靠的位置开始选取证书
+
+## :bug: 问题修复
+
+* 另存为操作在没有删除交换文件的情况下切换打开路径，这将导致原文件被警告存在未保存的更改 803cb7e8
+* :rotating_light: 消除提交文件中存在的警报，主要是类型检查问题，这可能修复潜在的bug
+
+## 其他
+
+* :rocket: 提高打包脚本对Python虚拟环境的支持程度
+* :rocket: 现在会打包pip依赖列表，以便于追溯依赖版本
+* :arrow_up: psutil 7.0.0 -> 7.2.2
+* :arrow_up: pydantic 2.11.4 -> 2.13.4
+* :arrow_up: pycryptodome 3.22.0 -> 3.23.0
+* :arrow_up: PyQt6 6.9.0 -> 6.11.0
+* :arrow_up: pillow 11.2.1 -> 12.2.0
+* :arrow_up: Markdown 3.8 -> 3.10.2
+* :arrow_up: pymdown-extensions 10.15 -> 10.21.3
+* :arrow_up: pyinstaller 6.13.0 -> 6.20.0
+* :arrow_up: mypy 1.15.0 -> 2.1.0
+* :page_facing_up: 更新LICENSE 
+
+**Full Changelog**: [CipherManagerGUI-2.1.2 -> CipherManagerGUI-2.2.0](https://github.com/BlueWhaleMain/cipher-manager/compare/CipherManagerGUI-2.1.2...CipherManagerGUI-2.2.0)
+
+---
+
 # :bookmark: CipherManagerGUI 2.1.2
 
 ## :sparkles: 功能变化
