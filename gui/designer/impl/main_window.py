@@ -108,14 +108,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @report_with_exception
     def dropEvent(self, e: QDropEvent) -> None:
-        urls = e.mimeData().urls()
+        mime_data = e.mimeData()
+        urls = mime_data.urls() if mime_data else None
         if urls:
             self._table_view.open_file(urls[0].toLocalFile())
         super().dropEvent(e)
 
     @report_with_exception
     def dragEnterEvent(self, e: QDragEnterEvent) -> None:
-        if e.mimeData().urls():
+        mime_data = e.mimeData()
+        if mime_data and mime_data.urls():
             e.accept()
         else:
             e.ignore()
@@ -321,7 +323,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _lock_title(self) -> str:
         if not self._table_view.has_file:
             return ''
-        if self._table_view.locked is True:
+        if self._table_view.locked:
             return self.tr('已锁定')
         if self.action_auto_lock.isChecked():
             if self._table_view.has_file and QApplication.modalWindow() is not None:

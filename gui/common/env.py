@@ -1,6 +1,6 @@
 #  MIT License
 #
-#  Copyright (c) 2022-2025 BlueWhaleMain
+#  Copyright (c) 2022-2026 BlueWhaleMain
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to deal
@@ -34,7 +34,8 @@ from PyQt6.QtWidgets import QApplication, QMessageBox
 from psutil import Process
 
 import cm.base
-from cm.error import CmBaseException
+from cm.error import CmBaseException, CmInterrupt, CmNotImplementedError
+from common.strings import abbreviate
 
 __LOG: logging.Logger = logging.getLogger(__name__)
 
@@ -47,9 +48,9 @@ SELF_CMD = sys.argv[0]
 # 当前可执行文件路径
 PATH = os.path.dirname(SELF_CMD)
 # 当前应用程序启动命令（可被用于启动同一个实例）
-_raw_cmds = []
+_raw_cmd_arr = []
 for arg in CMDLINE:
-    _raw_cmds.append(arg)
+    _raw_cmd_arr.append(arg)
     if arg == SELF_CMD:
         break
 
@@ -57,7 +58,7 @@ for arg in CMDLINE:
 cm.base.erase_disabled = True
 
 
-def find_path(path: str, validator=os.path.exists, external=tuple()) -> str:
+def find_path(path: str, validator=os.path.exists, external=()) -> str:
     """寻找路径"""
     paths = [*sys.path, *external]
     for sys_path in paths:
@@ -68,26 +69,26 @@ def find_path(path: str, validator=os.path.exists, external=tuple()) -> str:
 
 def new_instance(filepath: str) -> None:
     """新建应用程序实例"""
-    subprocess.Popen([*_raw_cmds, filepath])
+    subprocess.Popen([*_raw_cmd_arr, filepath])
 
 
 # 避免一个异常记录两次
 shown_exception: BaseException | None = None
 
 
-def message(icon: QMessageBox.Icon, title: str = None, text: str = None,
+def message(icon: QMessageBox.Icon, title: str | None = None, text: str | None = None,
             buttons: QMessageBox.StandardButton = QMessageBox.StandardButton.NoButton,
             parent=None, *args, max_len: int = 255, **kwargs) -> int:
     """弹出消息框（消息长度未知）"""
     if parent is None:
         parent = QApplication.activeWindow()
-    if QThread.currentThread() == QApplication.instance().thread():
-        return QMessageBox(icon, title, text if len(text) < max_len else text[:max_len] + '...', buttons, parent, *args,
-                           **kwargs).exec()
+    app = QApplication.instance()
+    assert app is not None
+    if QThread.currentThread() == app.thread():
+        return QMessageBox(icon, title, abbreviate(text, max_len), buttons, parent, *args, **kwargs).exec()
     # 此情况无法获取用户输入
     buttons = QMessageBox.StandardButton.NoButton
-    QMessageBox(icon, title, text if len(text) < max_len else text[:max_len] + '...', buttons, parent, *args,
-                **kwargs).show()
+    QMessageBox(icon, title, abbreviate(text, max_len), buttons, parent, *args, **kwargs).show()
     return buttons
 
 
@@ -126,10 +127,10 @@ def crash(e_t: type[BaseException], e: BaseException, traceback: TracebackType |
             sys.exit(signal.SIGINT)
     elif e_t == SystemExit:
         # 应尽量避免非正常退出等致命退出情况
-        __LOG.info(e, exc_info=traceback)
+        __LOG.info(e, exc_info=(e_t, e, traceback))
         return
-    if not e is shown_exception:
-        __LOG.critical(e, exc_info=traceback)
+    if e is not shown_exception:
+        __LOG.critical(e, exc_info=(e_t, e, traceback))
         t_e_name = type(e).__name__
         es = str(e)
         button = critical(f'{t_e_name}：{os.linesep}{es}。' if es else f'{t_e_name}。',
@@ -144,6 +145,7 @@ def crash(e_t: type[BaseException], e: BaseException, traceback: TracebackType |
 
 def report_with_exception(func: Callable[..., Any | None]) -> Callable[..., Any | None]:
     """包装函数使其向用户报告异常，避免信号槽函数崩溃，用法类似于@qt_safe"""
+
     @functools.wraps(func)
     def wrapper(*args, **kwargs) -> None:
         global shown_exception
@@ -156,7 +158,7 @@ def report_with_exception(func: Callable[..., Any | None]) -> Callable[..., Any 
                 cs = str(e.__cause__) if e.__cause__ else None
                 t_c_name = type(e.__cause__).__name__ if e.__cause__ else None
                 # 此类异常用于打断执行流程，除非有信息否则不需要显示
-                if isinstance(e, KeyboardInterrupt):
+                if isinstance(e, CmInterrupt):
                     if cs:
                         __LOG.debug(f'{es}：{cs}。')
                         if es:
@@ -172,7 +174,7 @@ def report_with_exception(func: Callable[..., Any | None]) -> Callable[..., Any 
                     else:
                         # 建议用return替代无需提示用户的中断
                         __LOG.debug(e, exc_info=True)
-                elif isinstance(e, NotImplementedError):
+                elif isinstance(e, CmNotImplementedError):
                     es = str(e)
                     if es:
                         # 这里可能是不支持的操作，需要警告用户
@@ -180,7 +182,7 @@ def report_with_exception(func: Callable[..., Any | None]) -> Callable[..., Any 
                     else:
                         # 功能没有实现时提供友好反馈，不应在稳定版中存在
                         __LOG.debug(e, exc_info=True)
-                        info(f'功能尚未实现。', parent=args[0])
+                        info('功能尚未实现。', parent=args[0])
                 else:
                     __LOG.error(e, exc_info=True)
                     # 已知的异常
@@ -198,8 +200,7 @@ def report_with_exception(func: Callable[..., Any | None]) -> Callable[..., Any 
                 __LOG.error(e, exc_info=True)
                 es = str(e)
                 t_e_name = type(e).__name__
-                # 可能可以重试本次操作来解决，也可能需要紧急崩溃
-                # 对非专业用户不友好，应尽量避免
+                # 可能可以重试本次操作来解决，也可能需要紧急崩溃。对非专业用户不友好，应尽量避免。
                 result = critical(f'{t_e_name}：{os.linesep}{es}。' if es else f'{t_e_name}。',
                                   '未知异常', QMessageBox.StandardButton.Retry
                                   | QMessageBox.StandardButton.Abort

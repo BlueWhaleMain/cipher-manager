@@ -1,6 +1,6 @@
 #  MIT License
 #
-#  Copyright (c) 2022-2025 BlueWhaleMain
+#  Copyright (c) 2022-2026 BlueWhaleMain
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to deal
@@ -53,7 +53,7 @@ class SpawnThread(CallableThread[str]):
     """生成密码线程"""
     returned: QtCore.pyqtSignal = QtCore.pyqtSignal(str)
 
-    def __init__(self, character_set: typing.Sequence[str], pwd_len: int, conditions: typing.Sequence[str] = None):
+    def __init__(self, character_set: typing.Sequence[str], pwd_len: int, conditions: typing.Sequence[str] | None = None):
         super().__init__()
         self._character_set = character_set
         self._pwd_len = pwd_len
@@ -80,7 +80,7 @@ class SpawnThread(CallableThread[str]):
 
     def _general(self) -> str:
         pwd = ''
-        for i in range(self._pwd_len):
+        for _ in range(self._pwd_len):
             pwd += random.choice(self._character_set)
         return pwd
 

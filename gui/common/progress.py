@@ -1,6 +1,6 @@
 #  MIT License
 #
-#  Copyright (c) 2022-2025 BlueWhaleMain
+#  Copyright (c) 2022-2026 BlueWhaleMain
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to deal
@@ -46,7 +46,7 @@ _INTERVAL = 100
 
 
 def execute_in_progress(self: QtWidgets.QWidget, fn: Callable[_P, _T], /, *args: _P.args,
-                        cm_progress: CmProgress = None, **kwargs: _P.kwargs) -> _T:
+                        cm_progress: CmProgress | None = None, **kwargs: _P.kwargs) -> _T:
     """创建线程执行耗时过程，阻塞，弹出进度对话框，支持进度管理器"""
     result_queue = Queue()
     thread = DefaultCallableThread(self, fn, *args, **kwargs)

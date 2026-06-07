@@ -32,7 +32,7 @@ from cm.progress import CmProgress
 from common.file import filesize_convert
 
 # 被加密保护的文件内容类型
-_PROTECT_CIPER_FILE_CONTENT_TYPE = "application/cm-protect"
+_PROTECT_CIPHER_FILE_CONTENT_TYPE = "application/cm-protect"
 # 被加密保护的文件幻数
 _MAGIC = b'CM'
 
@@ -46,7 +46,7 @@ class ProtectCipherFile(CipherFile):
         total_size: 源文件大小
         crc32: 源文件CRC32校验和
     """
-    content_type: str = _PROTECT_CIPER_FILE_CONTENT_TYPE
+    content_type: str = _PROTECT_CIPHER_FILE_CONTENT_TYPE
 
     filename: bytes | None = None
     total_size: int | None = None
@@ -67,7 +67,7 @@ class ProtectCipherFile(CipherFile):
             新实例
         """
         self = cls(**cipher_file.model_dump())
-        self.content_type = _PROTECT_CIPER_FILE_CONTENT_TYPE
+        self.content_type = _PROTECT_CIPHER_FILE_CONTENT_TYPE
         self._key = cipher_file._key
         return self
 
@@ -97,7 +97,7 @@ class ProtectCipherFile(CipherFile):
                 header = pickle.loads(base64.standard_b64decode(base64_bytes))
             except Exception as e:
                 raise CmRuntimeError('不正确的文件开头') from e
-            if 'content_type' not in header or header['content_type'] != _PROTECT_CIPER_FILE_CONTENT_TYPE:
+            if 'content_type' not in header or header['content_type'] != _PROTECT_CIPHER_FILE_CONTENT_TYPE:
                 raise CmRuntimeError('不正确的文件开头')
             self = cls(**header)
             self._filepath = filepath
@@ -114,6 +114,7 @@ class ProtectCipherFile(CipherFile):
             chunk_size: 块大小
         """
         self.total_size = os.path.getsize(raw_filepath)
+        assert self.total_size is not None
         if self.total_size == 0:
             raise CmValueError('file is empty')
         progress.start_or_sub(self.total_size, '加密中...', filesize_convert, 'File Size')
@@ -135,7 +136,7 @@ class ProtectCipherFile(CipherFile):
                 progress.restart(self.total_size // chunk_size, unit=f'区块（{chunk_size}字节）')
                 current_size = 0
                 for chunk in self.encrypt_stream(file, chunk_size, progress, self.total_size,
-                                                 os.cpu_count() if self.cipher_name.padding <= 0 else 1):
+                                                 os.cpu_count() or 1 if self.cipher_name.padding <= 0 else 1):
                     current_size += len(chunk)
                     dist_file.write(chunk)
                     progress.step(last_msg=f'加密中...{filesize_convert(current_size)}')
@@ -154,7 +155,7 @@ class ProtectCipherFile(CipherFile):
         if self.key_type != cipher_file.key_type:
             return False
         if self.key_type.is_file:
-            if cipher_file._key is not None:
+            if not cipher_file.locked:
                 self._key = cipher_file._key
             return True
         try:
@@ -192,6 +193,11 @@ class ProtectCipherFile(CipherFile):
         Raises:
             CmRuntimeError: 文件格式不正确或解密失败
         """
+        if self._filepath is None:
+            raise CmRuntimeError('未指定路径')
+        if self.total_size is None:
+            raise CmValueError('文件大小异常')
+
         progress.start_or_sub(title='解密并校验中...')
         with open(self._filepath, 'rb') as f:
             if f.read(len(_MAGIC)) != _MAGIC:
@@ -206,7 +212,7 @@ class ProtectCipherFile(CipherFile):
                 current_size = 0
                 crc = 0
                 for chunk in self.decrypt_stream(f, chunk_size, progress, self.total_size,
-                                                 os.cpu_count() if self.cipher_name.padding <= 0 else 1):
+                                                 os.cpu_count() or 1 if self.cipher_name.padding <= 0 else 1):
                     if current_size + len(chunk) > self.total_size:
                         chunk = chunk[:self.total_size - current_size]
                     current_size += len(chunk)
@@ -219,4 +225,4 @@ class ProtectCipherFile(CipherFile):
         progress.complete()
 
 
-ProtectCipherFile.CONTENT_TYPE = _PROTECT_CIPER_FILE_CONTENT_TYPE
+ProtectCipherFile.CONTENT_TYPE = _PROTECT_CIPHER_FILE_CONTENT_TYPE

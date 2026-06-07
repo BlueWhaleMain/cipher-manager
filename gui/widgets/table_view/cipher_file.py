@@ -27,8 +27,8 @@ import logging
 import os
 import pickle
 import shutil
-from typing import AnyStr
 from io import StringIO
+from typing import Callable, AnyStr
 
 from PyQt6.QtCore import pyqtSignal, Qt, QAbstractItemModel, QModelIndex, pyqtBoundSignal
 from PyQt6.QtGui import QAction, QIcon, QCursor, QStandardItem, QStandardItemModel, QColor
@@ -70,7 +70,9 @@ class CipherFileTableView(QTableView):
         self._text_show_dialog: TextShowDialog = TextShowDialog(self)
         self._random_password_dialog: RandomPasswordDialog = RandomPasswordDialog(self)
 
-        self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        _header = self.horizontalHeader()
+        assert _header is not None, self.tr('意料之外的空值')
+        _header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
 
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.context_menu = QMenu(self)
@@ -139,29 +141,17 @@ class CipherFileTableView(QTableView):
         self.customContextMenuRequested.connect(self.create_context_menu)
         self.doubleClicked.connect(self._double_click)
 
-        # noinspection PyUnresolvedReferences
         self.action_view.triggered.connect(self._view_item)
-        # noinspection PyUnresolvedReferences
         self.action_edit.triggered.connect(self._edit_item)
-        # noinspection PyUnresolvedReferences
         self.action_decrypt_row.triggered.connect(self._decrypt_row)
-        # noinspection PyUnresolvedReferences
         self.action_decrypt_col.triggered.connect(self._decrypt_col)
-        # noinspection PyUnresolvedReferences
         self.action_generate.triggered.connect(self._generate_item)
-        # noinspection PyUnresolvedReferences
         self.action_row_insert.triggered.connect(self._row_insert)
-        # noinspection PyUnresolvedReferences
         self.action_col_insert.triggered.connect(self._col_insert)
-        # noinspection PyUnresolvedReferences
         self.action_row_go_up.triggered.connect(self._row_go_up)
-        # noinspection PyUnresolvedReferences
         self.action_row_go_down.triggered.connect(self._row_go_down)
-        # noinspection PyUnresolvedReferences
         self.action_remove_line.triggered.connect(self._remove_row)
-        # noinspection PyUnresolvedReferences
         self.action_remove_colum.triggered.connect(self._remove_col)
-        # noinspection PyUnresolvedReferences
         self.action_resize_colum.triggered.connect(self._resize_col)
 
         self.setAcceptDrops(True)
@@ -169,7 +159,7 @@ class CipherFileTableView(QTableView):
     @report_with_exception
     def setModel(self, model: QAbstractItemModel | None) -> None:
         super().setModel(model)
-        # noinspection PyUnresolvedReferences
+        assert model is not None, self.tr('意料之外的空值')
         model.dataChanged.connect(self._data_changed)
         self._refresh(reload=True)
 
@@ -190,7 +180,7 @@ class CipherFileTableView(QTableView):
         return os.getcwd()
 
     @property
-    def filepath(self) -> str:
+    def filepath(self) -> str | None:
         """当前打开文件路径"""
         return self._filepath
 
@@ -215,7 +205,7 @@ class CipherFileTableView(QTableView):
         self._cipher_file = self._new_cipher_file_dialog.create_file()
         self.save_file()
 
-    def open_file(self, filepath: str = None) -> None:
+    def open_file(self, filepath: str | None = None) -> None:
         """打开文件"""
         if not filepath:
             filepath, _ = QFileDialog.getOpenFileName(self, self.tr('选择加密定义文件'), self.current_dir,
@@ -371,7 +361,7 @@ class CipherFileTableView(QTableView):
             self._edited = True
             self._refresh(reload=True)
 
-    def save_file(self, filepath: str = None) -> None:
+    def save_file(self, filepath: str | None = None) -> None:
         """保存文件"""
         cipher_file = self._cipher_file
         if not self.has_file:
@@ -386,7 +376,6 @@ class CipherFileTableView(QTableView):
         if not filepath:
             return
         with open(filepath, 'wb') as f:
-            # noinspection PyTypeChecker
             pickle.dump(cipher_file.model_dump(), f, self._cipher_file_protocol)
             self._edited = False
         swap_filepath = filepath + '~'
@@ -402,8 +391,8 @@ class CipherFileTableView(QTableView):
             return
         if not self._filepath:
             return
+        assert self.__cipher_file is not None, self.tr('已经判断过文件不为空但此时文件为空')
         with open(self._filepath + '~', 'wb') as f:
-            # noinspection PyTypeChecker
             pickle.dump(self.__cipher_file.model_dump(), f, self._cipher_file_protocol)
 
     def discard_change(self, reload: bool = False) -> None:
@@ -420,6 +409,7 @@ class CipherFileTableView(QTableView):
         """重命名/移动文件"""
         filepath, _ = QFileDialog.getSaveFileName(self, self.tr('重命名/移动加密定义文件'), self.current_dir,
                                                   self.tr('Pickle文件(*.pkl);;所有文件(*)'))
+        assert self._filepath is not None, self.tr('执行重命名操作时文件必定已存在')
         if not filepath:
             return
         shutil.move(self._filepath, filepath)
@@ -433,14 +423,14 @@ class CipherFileTableView(QTableView):
         if not filepath:
             return
         with open(filepath, 'wb') as f:
-            # noinspection PyTypeChecker
-            pickle.dump(self._cipher_file, f, self._cipher_file_protocol)
+            pickle.dump(self._cipher_file.model_dump(), f, self._cipher_file_protocol)
         self.discard_change()
         self._filepath = filepath
         self._refresh(True)
 
     def export_file(self) -> None:
         """导出文件记录"""
+        assert self._filepath is not None, self.tr('导出按钮只会在有文件时可用')
         filepath, _ = QFileDialog.getSaveFileName(self, self.tr('导出记录'),
                                                   os.path.join(self.current_dir,
                                                                os.path.splitext(self._filepath)[0] + '.csv'),
@@ -534,8 +524,10 @@ class CipherFileTableView(QTableView):
 
     def decrypt_all(self):
         """解密所有单元格"""
-        cols = self.model().columnCount()
-        rows = self.model().rowCount()
+        model = self.model()
+        assert model is not None, self.tr('意料之外的空值')
+        cols = model.columnCount()
+        rows = model.rowCount()
         progress = QProgressDialog(self)
         progress.setWindowTitle(self.tr('解密中...'))
         for row in each_in_steps(progress, range(rows), rows):
@@ -557,13 +549,15 @@ class CipherFileTableView(QTableView):
         """打开属性对话框"""
         self._attribute_dialog.load_file(self._cipher_file)
 
-    def lock(self):
+    def lock(self) -> bool:
         """锁定当前工作区"""
         if self.has_file:
             cipher_file = self._cipher_file
             if not cipher_file.locked:
                 cipher_file.lock()
                 self._refresh(reload=True)
+                return True
+        return False
 
     @property
     def _cipher_file(self) -> TableRecordCipherFile:
@@ -577,6 +571,7 @@ class CipherFileTableView(QTableView):
                 self.open_file()
             else:
                 raise CmInterrupt
+        assert self.__cipher_file is not None, self.tr('已经判断过文件不为空但此时文件为空')
         return self.__cipher_file
 
     @_cipher_file.setter
@@ -595,12 +590,16 @@ class CipherFileTableView(QTableView):
 
     @report_with_exception
     def _edit_item(self, _):
-        self._set(self.currentIndex(), self._text_show_dialog.show_text(self.action_edit.text(),
-                                                                        self._get(self.currentIndex()), True))
+        text = self._text_show_dialog.show_text(self.action_edit.text(), self._get(self.currentIndex()), True)
+        if text:
+            self._set(self.currentIndex(), text)
 
     @report_with_exception
     def _decrypt_row(self, _):
-        cols = self.model().columnCount()
+        model = self.model()
+        assert model is not None, self.tr('意料之外的空值')
+
+        cols = model.columnCount()
         row = self.currentIndex().row()
         progress = QProgressDialog(self)
         progress.setWindowTitle(self.tr('解密第{}行...').format(row + 1))
@@ -610,7 +609,10 @@ class CipherFileTableView(QTableView):
 
     @report_with_exception
     def _decrypt_col(self, _):
-        rows = self.model().rowCount()
+        model = self.model()
+        assert model is not None, self.tr('意料之外的空值')
+
+        rows = model.rowCount()
         col = self.currentIndex().column()
         progress = QProgressDialog(self)
         progress.setWindowTitle(self.tr('解密第{}列...').format(col + 1))
@@ -632,8 +634,9 @@ class CipherFileTableView(QTableView):
         if not self.has_file:
             return
         index = self.currentIndex()
-        # noinspection PyTypeChecker
-        model: QStandardItemModel = self.model()
+        model = self.model()
+        assert isinstance(model, QStandardItemModel), self.tr('意料之外的数据模型')
+
         records = self._cipher_file.records
         row = index.row()
         # 最后一行不能移动，下标不能越界
@@ -647,8 +650,9 @@ class CipherFileTableView(QTableView):
         if not self.has_file:
             return
         index = self.currentIndex()
-        # noinspection PyTypeChecker
-        model: QStandardItemModel = self.model()
+        model = self.model()
+        assert isinstance(model, QStandardItemModel), self.tr('意料之外的数据模型')
+
         records = self._cipher_file.records
         col = index.column()
         # 最后一列不能移动
@@ -666,8 +670,9 @@ class CipherFileTableView(QTableView):
         if not self.has_file:
             return
         index = self.currentIndex()
-        # noinspection PyTypeChecker
-        model: QStandardItemModel = self.model()
+        model = self.model()
+        assert isinstance(model, QStandardItemModel), self.tr('意料之外的数据模型')
+
         records = self._cipher_file.records
         row = index.row()
         # 第一行不能上移，最后一行不能移动，下标不能越界
@@ -685,8 +690,9 @@ class CipherFileTableView(QTableView):
         if not self.has_file:
             return
         index = self.currentIndex()
-        # noinspection PyTypeChecker
-        model: QStandardItemModel = self.model()
+        model = self.model()
+        assert isinstance(model, QStandardItemModel), self.tr('意料之外的数据模型')
+
         records = self._cipher_file.records
         row = index.row()
         # 倒数第二行不能下移，最后一行不能移动，下标不能越界
@@ -702,7 +708,9 @@ class CipherFileTableView(QTableView):
     @report_with_exception
     def _remove_row(self, _):
         row = self.currentIndex().row()
-        if row >= self.model().rowCount() - 1:
+        model = self.model()
+        assert model is not None, self.tr('意料之外的空值')
+        if row >= model.rowCount() - 1:
             return
         button = QMessageBox.warning(self, self.tr('你确定吗？'), self.tr('将删除整行。'),
                                      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
@@ -710,12 +718,14 @@ class CipherFileTableView(QTableView):
             return
         self._cipher_file.records.pop(row)
         self._file_edited()
-        self.model().removeRow(row)
+        model.removeRow(row)
 
     @report_with_exception
     def _remove_col(self, _):
         col = self.currentIndex().column()
-        if col >= self.model().columnCount() - 1:
+        model = self.model()
+        assert model is not None, self.tr('意料之外的空值')
+        if col >= model.columnCount() - 1:
             return
         button = QMessageBox.warning(self, self.tr('你确定吗？'), self.tr('将删除整列。'),
                                      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
@@ -725,12 +735,15 @@ class CipherFileTableView(QTableView):
             if len(record) > col:
                 record.pop(col)
         self._file_edited()
-        self.model().removeColumn(col)
+        model.removeColumn(col)
 
     @report_with_exception
     def _resize_col(self, _):
+        model = self.model()
+        assert model is not None, self.tr('意料之外的空值')
+
         col = self.currentIndex().column()
-        if col >= self.model().columnCount() - 1:
+        if col >= model.columnCount() - 1:
             return
         self.resizeColumnToContents(col)
 
@@ -744,7 +757,8 @@ class CipherFileTableView(QTableView):
         # 以下代码只能被用户修改触发
         if not isinstance(sender, QStyledItemDelegate):
             return
-        print('单元格被修改', sender, (index.row(), index.column()), (index2.row(), index2.column()), raw_index)
+        print('单元格被修改', sender.__class__.__name__, (index.row(), index.column()), (index2.row(), index2.column()),
+              raw_index)
         self._edit_data(index.row(), index.column())
 
     def _file_edited(self):
@@ -752,14 +766,20 @@ class CipherFileTableView(QTableView):
         self._refresh()
 
     def _get(self, index: QModelIndex) -> str | None:
-        # noinspection PyUnresolvedReferences
-        item = self.model().item(index.row(), index.column())
+        model = self.model()
+        assert isinstance(model, QStandardItemModel), self.tr('意料之外的数据模型')
+
+        item = model.item(index.row(), index.column())
         return item.text() if item else None
 
     def _set(self, index: QModelIndex, val: str) -> None:
         if self._try_edit(index.row(), index.column()):
-            # noinspection PyUnresolvedReferences
-            self.model().item(index.row(), index.column()).setText(val)
+            model = self.model()
+            assert isinstance(model, QStandardItemModel), self.tr('意料之外的数据模型')
+            item = model.item(index.row(), index.column())
+            assert item is not None, self.tr('检查try_edit，此处不应该为空值')
+
+            item.setText(val)
             self._edit_data(index.row(), index.column())
 
     def _try_edit(self, row: int, col: int) -> bool:
@@ -824,6 +844,8 @@ class CipherFileTableView(QTableView):
         if cipher_file.key_hash is None:
             key = InputPasswordDialog.getpass(self, self.tr('设置密码'), self.tr('密码'), True)
         else:
+            # AnyStr与str|bytes检查不一致
+            # noinspection PyTypeChecker
             key = InputPasswordDialog.getpass(self, self.tr('输入密码'), self.tr('密码'), False,
                                               cipher_file.validate_key)
         if key is None:
@@ -833,20 +855,27 @@ class CipherFileTableView(QTableView):
         cipher_file.unlock(key)
         return True
 
-    def _key_passphrase_validator(self, key: bytes, cipher_file: CipherFile):
+    def _key_passphrase_validator(self, key: bytes, cipher_file: CipherFile) -> Callable[[AnyStr | None], bool]:
         @functools.wraps(cipher_file.unlock)
-        def wrapper(passphrase: AnyStr) -> bool:
+        def wrapper(passphrase: AnyStr | None) -> bool:
+            if isinstance(passphrase, bytes):
+                raise TypeError('此处只允许文本密码')
             execute_in_progress(self, cipher_file.unlock, key, passphrase)
             return True
 
+        # 忽略function tool产生的类型问题
+        # noinspection PyTypeChecker
         return wrapper
 
     def _edit_data(self, row: int, col: int) -> None:
         if not self._suggest_unlock():
             return
-        # noinspection PyTypeChecker
-        model: QStandardItemModel = self.model()
-        text = model.item(row, col).text()
+        model = self.model()
+        assert isinstance(model, QStandardItemModel), self.tr('意料之外的数据模型')
+
+        _item = model.item(row, col)
+        assert _item is not None, self.tr('意料之外的空值')
+        text = _item.text()
         _cipher_file = self._cipher_file
         if not text:
             try:
@@ -873,9 +902,10 @@ class CipherFileTableView(QTableView):
             model.appendRow([self._make_cell() for _ in range(column_count)])
 
     def _refresh(self, reload: bool = False):
-        # noinspection PyTypeChecker
-        model: QStandardItemModel = self.model()
-        if reload is True:
+        model = self.model()
+        assert isinstance(model, QStandardItemModel), self.tr('意料之外的数据模型')
+
+        if reload:
             model.removeRows(0, model.rowCount())
             model.setRowCount(0)
             model.setColumnCount(0)
@@ -901,8 +931,9 @@ class CipherFileTableView(QTableView):
         self.refreshed.emit(reload)
 
     def _get_cell(self, row: int, col: int) -> QStandardItem:
-        # noinspection PyTypeChecker
-        model: QStandardItemModel = self.model()
+        model = self.model()
+        assert isinstance(model, QStandardItemModel), self.tr('意料之外的数据模型')
+
         item = model.item(row, col)
         if item is None:
             item = self._make_cell()
@@ -910,7 +941,7 @@ class CipherFileTableView(QTableView):
         return item
 
     @classmethod
-    def _make_cell(cls, text: str = None) -> QStandardItem:
+    def _make_cell(cls, text: str | None = None) -> QStandardItem:
         cell = QStandardItem()
         if text:
             cell.setText(text)

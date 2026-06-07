@@ -1,6 +1,6 @@
 #  MIT License
 #
-#  Copyright (c) 2022-2025 BlueWhaleMain
+#  Copyright (c) 2022-2026 BlueWhaleMain
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to deal
@@ -39,7 +39,8 @@ class CmProgress:
         CANCELLED = 3
         HANGING = 4
 
-    def __init__(self, total: int = 0, title: str = None, formatter: Callable[[int], str] = str, unit: str = 'steps'):
+    def __init__(self, total: int = 0, title: str | None = None, formatter: Callable[[int], str] = str,
+                 unit: str = 'steps'):
         """
         Args:
             total: 进度总量，为0视作无限
@@ -55,8 +56,8 @@ class CmProgress:
         self._status = self.Status.INACTIVE
         self._canceled = Event()
         self._last_msg: str = ''
-        self._sub_progress: Self = None
-        self._parent: Self = None
+        self._sub_progress: Self | None = None
+        self._parent: Self | None = None
 
     def __del__(self):
         if self.running:
@@ -105,7 +106,7 @@ class CmProgress:
         return self._active_instance._unit
 
     @property
-    def title(self) -> str:
+    def title(self) -> str | None:
         """
         Returns:
             标题
@@ -197,7 +198,7 @@ class CmProgress:
         self._unit = unit
         self._status = self.Status.RUNNING
 
-    def start_or_sub(self, total: int = 0, title: str = None, formatter: Callable[[int], str] = str,
+    def start_or_sub(self, total: int = 0, title: str | None = None, formatter: Callable[[int], str] = str,
                      unit: str = 'steps') -> Self:
         """
         启动或创建一个子进度
@@ -216,7 +217,7 @@ class CmProgress:
         if self._status != self.Status.RUNNING:
             raise RuntimeError(f'status is {self.status}')
         self._status = self.Status.HANGING
-        sub_progress = CmProgress(title=title if title else self._title)
+        sub_progress = self.__class__(title=title if title else self._title)
         sub_progress.start(total=total, formatter=formatter, unit=unit)
         sub_progress._parent = self
         self._sub_progress = sub_progress
@@ -271,7 +272,7 @@ class CmProgress:
         if not self._sub_progress:
             raise RuntimeError('no progress')
         if self._sub_progress.running:
-            raise RuntimeError(f'sub_progress is already running')
+            raise RuntimeError('sub_progress is already running')
         self._sub_progress = None
         self._status = self.Status.RUNNING
 

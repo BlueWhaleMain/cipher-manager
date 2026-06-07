@@ -1,6 +1,6 @@
 #  MIT License
 #
-#  Copyright (c) 2022-2025 BlueWhaleMain
+#  Copyright (c) 2022-2026 BlueWhaleMain
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to deal
@@ -47,7 +47,7 @@ def erase(secret):
     ctypes.memset(id(secret) + offset, 0, buffer_size)
 
 
-def fixed_bytes(data: bytes, unit_len: int, min_len: int = 0, max_len: int = None):
+def fixed_bytes(data: bytes, unit_len: int, min_len: int = 0, max_len: int | None = None):
     """将一段字节修整为指定大小的倍数"""
     if unit_len == 0:
         raise ValueError(unit_len)
@@ -71,3 +71,4 @@ class CmJsonEncoder(JSONEncoder):
     def default(self, o):
         if isinstance(o, bytes):
             return base64.standard_b64encode(o).decode()
+        return None

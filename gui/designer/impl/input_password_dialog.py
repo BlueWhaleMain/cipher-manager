@@ -1,6 +1,6 @@
 #  MIT License
 #
-#  Copyright (c) 2022-2025 BlueWhaleMain
+#  Copyright (c) 2022-2026 BlueWhaleMain
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,6 @@
 #
 import base64
 import functools
-import typing
 from typing import Callable, AnyStr
 
 from PyQt6.QtCore import Qt
@@ -41,7 +40,9 @@ class InputPasswordDialog(QDialog, Ui_InputPasswordDialog):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
-        self._result: typing.Optional[AnyStr] = None
+        # AnyStr与str|bytes检查不一致
+        # noinspection PyTypeHints
+        self._result: AnyStr | None = None
         self.error_label.setStyleSheet("color: rgb(255, 0, 0);")
         self.plain_text_edit.hide()
         self.error_label.hide()
@@ -103,14 +104,14 @@ class InputPasswordDialog(QDialog, Ui_InputPasswordDialog):
         self.line_edit.clear()
         self.plain_text_edit.clear()
 
-    def _try_execute_validator(self, validator: Callable[[str], bool]) -> Callable[[str], bool]:
+    def _try_execute_validator(self, validator: Callable[[AnyStr | None], bool]) -> Callable[[AnyStr | None], bool]:
         # 此处异常无法正常被外部捕获
         @report_with_exception
         @functools.wraps(validator)
-        def wrapper(*args, **kwargs) -> bool:
+        def wrapper(s: AnyStr) -> bool:
             try:
                 self.error_label.clear()
-                result = validator(*args, **kwargs)
+                result = validator(s)
                 self.error_label.hide()
                 return result
             except CmValueError as e:
@@ -126,11 +127,13 @@ class InputPasswordDialog(QDialog, Ui_InputPasswordDialog):
                 self.error_label.show()
                 raise
 
+        # 忽略function tool产生的类型问题
+        # noinspection PyTypeChecker
         return wrapper
 
     @classmethod
     def getpass(cls, parent: QWidget, title: str = 'Enter password', placeholder: str = 'password',
-                verify: bool = False, validator: Callable[[AnyStr], bool] = None) -> AnyStr | None:
+                verify: bool = False, validator: Callable[[AnyStr | None], bool] | None = None) -> AnyStr | None:
         """弹出对话框输入密码，支持二次确认与验证内容"""
         self = cls(parent)
         if title:
@@ -153,6 +156,8 @@ class InputPasswordDialog(QDialog, Ui_InputPasswordDialog):
             else:
                 result = self._result
         if validator:
+            # AnyStr与str|bytes检查不一致
+            # noinspection PyTypeChecker
             validator = self._try_execute_validator(validator)
             result = self._result
             if validator(result):

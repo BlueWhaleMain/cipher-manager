@@ -1,6 +1,6 @@
 #  MIT License
 #
-#  Copyright (c) 2022-2025 BlueWhaleMain
+#  Copyright (c) 2022-2026 BlueWhaleMain
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to deal
@@ -30,12 +30,13 @@ import Crypto.Util
 from Crypto.Cipher import DES, DES3, AES, PKCS1_OAEP, PKCS1_v1_5
 from Crypto.Hash import SHA1, SHA256, SHA512, BLAKE2b
 from Crypto.PublicKey import RSA
+from Crypto.PublicKey.RSA import RsaKey
 from Crypto.Random import get_random_bytes
 from pydantic import BaseModel
 
 from cm import CmValueError
 from cm.base import erase, fixed_bytes, copy_bytes
-from cm.error import CmNotImplementedError, CmRuntimeError
+from cm.error import CmNotImplementedError, CmRuntimeError, CmMissingSecretError
 from cm.progress import CmProgress
 from common.file import filesize_convert
 
@@ -125,7 +126,7 @@ class CipherFile(BaseModel):
     password_salt_len: int | None = 16
 
     # 密钥缓存，可能是密钥实体或字节
-    _key: Any | None = None
+    __key: Any | None = None
     # 支持的最大块加密长度，0表示没有限制
     _max_crypt_len: int = 0
     # 解密块所需的长度，0表示没有定义
@@ -137,6 +138,16 @@ class CipherFile(BaseModel):
         self.lock()
 
     @property
+    def _key(self) -> Any:
+        if self.__key is None:
+            raise CmMissingSecretError('missing key')
+        return self.__key
+
+    @_key.setter
+    def _key(self, key: Any):
+        self.__key = key
+
+    @property
     def locked(self):
         """
         当前是否已锁定
@@ -146,15 +157,15 @@ class CipherFile(BaseModel):
 
         锁定的对象无法执行加解密操作
         """
-        return self._key is None
+        return self.__key is None
 
     def lock(self):
         """锁定当前对象。"""
-        if self._key is not None:
-            erase(self._key)
-            self._key = None
+        if self.__key is not None:
+            erase(self.__key)
+            self.__key = None
 
-    def unlock(self, key: AnyStr = None, passphrase: str = None):
+    def unlock(self, key: AnyStr | None = None, passphrase: str | None = None):
         """
         使用密钥解锁当前对象。
 
@@ -168,16 +179,17 @@ class CipherFile(BaseModel):
         """
         if self.key_type == KeyType.PASSWORD:
             if isinstance(key, str):
-                self._key = key.encode('utf-8')
+                self.__key = key.encode('utf-8')
             elif isinstance(key, bytes):
-                self._key = copy_bytes(key)
+                self.__key = copy_bytes(key)
             try:
                 self._cipher()
             except ValueError as e:
                 raise CmValueError(e) from e
         elif self.key_type == KeyType.RSA_KEYSTORE:
             try:
-                self._key = RSA.importKey(key, passphrase)
+                assert isinstance(key, str | bytes), f'key type {type(key)} is not supported'
+                self.__key = RSA.importKey(key, passphrase)
             except ValueError as e:
                 raise CmValueError(e) from e
         else:
@@ -196,6 +208,7 @@ class CipherFile(BaseModel):
         if self.key_hash is not None:
             return False
         if self.password_salt is None and self.key_type.need_salt_protect:
+            assert self.password_salt_len is not None, 'password salt len is null'
             self.password_salt = get_random_bytes(self.password_salt_len)
         if isinstance(key, str):
             key = key.encode('utf-8')
@@ -319,6 +332,8 @@ class CipherFile(BaseModel):
                 iter_progress.step()
             iter_progress.complete()
         cipher = self._cipher()
+        # 此处TemporaryFile与BinaryIO等效
+        # noinspection PyTypeChecker
         for chunk in self._crypt_stream(getattr(cipher, mode), stream, chunk_size, concurrent_count):
             yield chunk
         if stream != raw_stream:
@@ -370,23 +385,28 @@ class CipherFile(BaseModel):
 
     def _cipher(self):
         """构建加密算法实例、初始化内部属性"""
-        if self._key is None:
-            raise RuntimeError(f'_key is None')
         self._max_crypt_len = 0
         self._decrypt_len = 0
         self._cant_decrypt = False
 
         if self.cipher_name == CipherName.DES:
+            assert isinstance(self._key, bytes), f'type {type(self._key)} is not supported'
             return DES.new(fixed_bytes(self._key, 8, 8, 8), **self.cipher_args)
         elif self.cipher_name == CipherName.DES3:
+            assert isinstance(self._key, bytes), f'type {type(self._key)} is not supported'
             return DES3.new(fixed_bytes(self._key, 8, 16, 24), **self.cipher_args)
         elif self.cipher_name == CipherName.AES128:
+            assert isinstance(self._key, bytes), f'type {type(self._key)} is not supported'
             return AES.new(fixed_bytes(self._key, 8, 16, 16), **self.cipher_args)
         elif self.cipher_name == CipherName.AES192:
+            assert isinstance(self._key, bytes), f'type {type(self._key)} is not supported'
             return AES.new(fixed_bytes(self._key, 8, 24, 24), **self.cipher_args)
         elif self.cipher_name == CipherName.AES256:
+            assert isinstance(self._key, bytes), f'type {type(self._key)} is not supported'
             return AES.new(fixed_bytes(self._key, 8, 32, 32), **self.cipher_args)
         elif self.cipher_name == CipherName.PKCS1_OAEP:
+            assert isinstance(self._key, RsaKey), f'type {type(self._key)} is not supported'
+
             if self.key_type == KeyType.RSA_KEYSTORE:
                 mod_bits = Crypto.Util.number.size(self._key.n)
                 k = Crypto.Util.number.ceil_div(mod_bits, 8)
@@ -399,6 +419,8 @@ class CipherFile(BaseModel):
                 self._cant_decrypt = (k < hash_algo.digest_size + 2)
             return PKCS1_OAEP.new(self._key, **self.cipher_args)
         elif self.cipher_name == CipherName.PKCS1_V1_5:
+            assert isinstance(self._key, RsaKey), f'type {type(self._key)} is not supported'
+
             if self.key_type == KeyType.RSA_KEYSTORE:
                 k = self._key.size_in_bytes()
                 self._max_crypt_len = k - 11
@@ -415,8 +437,10 @@ class CipherFile(BaseModel):
             data_to_hash = copy_bytes(key)
         erase(key)
         if self.key_type.need_salt_protect:
+            assert self.password_salt is not None, 'password salt is null'
             data_to_hash = data_to_hash + self.password_salt
-        for i in range(self.key_hash_iter_count):
+        assert self.key_hash_iter_count is not None, 'key_hash_iter_count is null'
+        for _ in range(self.key_hash_iter_count):
             data_to_hash = self._key_hash(data_to_hash).digest()
         return data_to_hash
 

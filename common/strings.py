@@ -1,6 +1,6 @@
 #  MIT License
 #
-#  Copyright (c) 2022-2025 BlueWhaleMain
+#  Copyright (c) 2026 BlueWhaleMain
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to deal
@@ -20,39 +20,8 @@
 #  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #  SOFTWARE.
 #
-class CmBaseException(Exception):
-    """CipherManager所有异常基类"""
 
-
-class CmInterrupt(CmBaseException):
-    """
-    CipherManager中断操作异常
-
-    打断消息循环直到被处理
-
-    尽量使用return代替
-    """
-
-
-class CmException(CmBaseException, Exception):
-    """CipherManager异常"""
-
-
-class CmRuntimeError(CmBaseException, RuntimeError):
-    """CipherManager运行时错误"""
-
-
-class CmTypeError(CmException, TypeError):
-    """CipherManager类型错误"""
-
-
-class CmValueError(CmException, ValueError):
-    """CipherManager值错误"""
-
-
-class CmNotImplementedError(CmRuntimeError, NotImplementedError):
-    """CipherManager未实现错误"""
-
-
-class CmMissingSecretError(CmRuntimeError):
-    """CipherManager缺少凭据错误"""
+def abbreviate(s: str | None, max_len: int, marker: str = '...') -> str | None:
+    if s is None:
+        return None
+    return s if len(s) < max_len else s[:max_len] + marker
