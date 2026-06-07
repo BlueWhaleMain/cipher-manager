@@ -836,7 +836,8 @@ class CipherFileTableView(QTableView):
 
     def _unlock_cipher_file(self, cipher_file: CipherFile) -> bool:
         while cipher_file.key_type.is_file:
-            filepath, _ = QFileDialog.getOpenFileName(self, self.tr('选择包含密钥的文件'), self._last_opened_keypath,
+            filepath, _ = QFileDialog.getOpenFileName(self, self.tr('选择包含密钥的文件'),
+                                                      self._last_opened_keypath or self.current_dir,
                                                       self.tr('所有文件(*)'
                                                               ';;DER证书(*.der *.cer *.cert)'
                                                               ';;ASCII PEM证书(*.pem *.asc)'
