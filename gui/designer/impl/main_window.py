@@ -267,6 +267,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _stay_on_top(self, selected):
         self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, selected)
         self.show()
+        self._relayout_()
 
     @report_with_exception
     def _notes_mode(self, selected):
@@ -331,6 +332,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _auto_save_(self):
         self._table_view.auto_save()
 
+    def _relayout_(self) -> None:
+        # setWindowFlag 会重建原生顶层窗口，在 Windows 上导致 QMainWindow 内部布局
+        # （菜单栏/中央部件/状态栏）几何缓存失效：状态栏下移、滚动条溢出，需手动调整尺寸才恢复。
+        # show() 不会触发重排，这里用一次 1px 的宽度往返强制 resizeEvent → QMainWindowLayout 重算。
+        size = self.size()
+        self.resize(size.width() - 1, size.height())
+        self.resize(size)
+
     def _try_lock_(self):
         GLOBAL_SIGNAL.app_try_lock.emit()
 
@@ -356,6 +365,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint, selected)
         self.menubar.setVisible(not selected)
         self.show()
+        self._relayout_()
 
     @property
     def _lock_title(self) -> str:

@@ -34,6 +34,8 @@ class ImageShowDialog(QtWidgets.QDialog, Ui_image_show_dialog):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
+        # 自动锁定时关闭对话框（实例复用，只连接一次，避免重复连接累积）
+        GLOBAL_SIGNAL.app_try_lock.connect(self.reject)
 
     def init(self) -> 'ImageShowDialog':
         """初始化"""
@@ -69,8 +71,5 @@ class ImageShowDialog(QtWidgets.QDialog, Ui_image_show_dialog):
         """
         self.setWindowTitle(title)
         self.image_label.setPixmap(pixmap)
-
-        if protect_content:
-            GLOBAL_SIGNAL.app_try_lock.connect(self.reject)
 
         return self.exec()

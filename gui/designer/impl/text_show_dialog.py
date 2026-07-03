@@ -34,6 +34,8 @@ class TextShowDialog(QtWidgets.QDialog, Ui_text_show_dialog):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self._accepted: bool = False
+        # 自动锁定时关闭对话框（实例复用，只连接一次，避免重复连接累积）
+        GLOBAL_SIGNAL.app_try_lock.connect(self.reject)
 
     @report_with_exception
     def accept(self) -> None:
@@ -55,8 +57,6 @@ class TextShowDialog(QtWidgets.QDialog, Ui_text_show_dialog):
             # noinspection PyTypeChecker
             self.button_box.setStandardButtons(QtWidgets.QDialogButtonBox.StandardButton.Save
                                                | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
-        if protect_content:
-            GLOBAL_SIGNAL.app_try_lock.connect(self.reject)
 
         self.exec()
         if editable:

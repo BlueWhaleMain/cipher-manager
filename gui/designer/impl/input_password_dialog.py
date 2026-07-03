@@ -57,9 +57,14 @@ class InputPasswordDialog(QDialog, Ui_InputPasswordDialog):
         self.password_encoding_combo_box.setCurrentIndex(0)
         self.line_edit.setFocus()
 
+    def _fit_size(self) -> None:
+        # .ui 未设置 minimumHeight（恒为 0），故按布局的 minimumSizeHint 取高度
+        height = self.minimumSizeHint().height()
+        self.resize(int(height * 2 / 0.618), height)
+
     @report_with_exception
     def showEvent(self, _) -> None:
-        self.resize(int(self.minimumHeight() * 2 / 0.618), self.minimumHeight())
+        self._fit_size()
 
     @report_with_exception
     def accept(self) -> None:
@@ -97,7 +102,7 @@ class InputPasswordDialog(QDialog, Ui_InputPasswordDialog):
             self.line_edit.show()
             self.line_edit.setFocus()
             self.show_password_check_box.show()
-        self.resize(int(self.minimumHeight() * 2 / 0.618), self.minimumHeight())
+        self._fit_size()
 
     def _clear(self):
         self._result = None
@@ -148,44 +153,51 @@ class InputPasswordDialog(QDialog, Ui_InputPasswordDialog):
 
         if protect_content:
             GLOBAL_SIGNAL.app_try_lock.connect(self._try_lock)
-
-        self.exec()
-        if self._result is None:
-            return None
-        if verify:
-            self.setWindowTitle(self.tr('输入两次以确认'))
-        result = self._result
-        while verify:
-            self._clear()
+        try:
             self.exec()
             if self._result is None:
                 return None
-            elif self._result == result:
-                break
-            else:
-                result = self._result
-        if validator:
-            # AnyStr与str|bytes检查不一致
-            # noinspection PyTypeChecker
-            validator = self._try_execute_validator(validator)
+            if verify:
+                self.setWindowTitle(self.tr('输入两次以确认'))
             result = self._result
-            if validator(result):
-                return result
-            else:
-                self.setWindowTitle(self.tr('验证失败，请再试一次'))
+            while verify:
                 self._clear()
                 self.exec()
-            while not validator(self._result):
                 if self._result is None:
                     return None
-                if self._result == result:
-                    button = QMessageBox.question(self, self.tr('密码可能不正确'), self.tr('忽略并继续？'),
-                                                  QMessageBox.StandardButton.Ignore | QMessageBox.StandardButton.Retry,
-                                                  QMessageBox.StandardButton.Retry)
-                    if button == QMessageBox.StandardButton.Ignore:
-                        return self._result
+                elif self._result == result:
+                    break
+                else:
+                    result = self._result
+            if validator:
+                # AnyStr与str|bytes检查不一致
+                # noinspection PyTypeChecker
+                validator = self._try_execute_validator(validator)
                 result = self._result
-                self._clear()
-                self.exec()
+                if validator(result):
+                    return result
+                else:
+                    self.setWindowTitle(self.tr('验证失败，请再试一次'))
+                    self._clear()
+                    self.exec()
+                while not validator(self._result):
+                    if self._result is None:
+                        return None
+                    if self._result == result:
+                        button = QMessageBox.question(self, self.tr('密码可能不正确'), self.tr('忽略并继续？'),
+                                                      QMessageBox.StandardButton.Ignore | QMessageBox.StandardButton.Retry,
+                                                      QMessageBox.StandardButton.Retry)
+                        if button == QMessageBox.StandardButton.Ignore:
+                            return self._result
+                    result = self._result
+                    self._clear()
+                    self.exec()
 
-        return self._result
+            return self._result
+        finally:
+            if protect_content:
+                # 断开自动锁定信号，避免连接累积与对象被删后 emit 崩溃
+                try:
+                    GLOBAL_SIGNAL.app_try_lock.disconnect(self._try_lock)
+                except (TypeError, RuntimeError):
+                    pass

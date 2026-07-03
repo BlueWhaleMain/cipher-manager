@@ -58,10 +58,17 @@ class TableViewShowDialog(QtWidgets.QDialog, Ui_table_view_show_dialog):
 
         if protect_content:
             GLOBAL_SIGNAL.app_try_lock.connect(self.reject)
-
-        self.exec()
-        if editable:
-            if self._accepted:
-                return self.table_view.model()
-            raise CmInterrupt
-        return None
+        try:
+            self.exec()
+            if editable:
+                if self._accepted:
+                    return self.table_view.model()
+                raise CmInterrupt
+            return None
+        finally:
+            if protect_content:
+                # 断开自动锁定信号，避免连接累积与对象被删后 emit 崩溃
+                try:
+                    GLOBAL_SIGNAL.app_try_lock.disconnect(self.reject)
+                except (TypeError, RuntimeError):
+                    pass
