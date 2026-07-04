@@ -788,13 +788,11 @@ class CipherFileTableView(QTableView):
         self._try_edit(index.row(), index.column())
 
     @report_with_exception
-    def _data_changed(self, index: QModelIndex, index2: QModelIndex, raw_index: list[int]):
+    def _data_changed(self, index: QModelIndex, _index2: QModelIndex, _raw_index: list[int]):
         sender = self.sender()
         # 以下代码只能被用户修改触发
         if not isinstance(sender, QStyledItemDelegate):
             return
-        print('单元格被修改', sender.__class__.__name__, (index.row(), index.column()), (index2.row(), index2.column()),
-              raw_index)
         self._edit_data(index.row(), index.column())
 
     def _file_edited(self):
