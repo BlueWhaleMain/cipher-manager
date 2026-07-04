@@ -6,4 +6,3 @@
 *.egg-info
 /cipher/
 HELP.md
-otp_qrcode.tmp
