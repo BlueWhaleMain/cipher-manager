@@ -406,9 +406,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _open_file_(self, filepath: str | None = None):
         self._table_view.open_file(filepath)
 
-    def _notes_mode_(self, selected, disable_auto_lock=True):
-        if disable_auto_lock:
-            self.action_auto_lock.setChecked(not selected)
+    def _notes_mode_(self, selected):
+        self.action_auto_lock.setChecked(not selected)
         self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, selected)
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint, selected)
         self.menubar.setVisible(not selected)
@@ -417,6 +416,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def _quit_notes_mode(self):
         if not self.action_notes_mode.isChecked():
+            return
+        if self.action_flow_mode.isChecked():
+            self.action_flow_mode.setChecked(False)
+            self.action_flow_mode.triggered.emit(False)
             return
         self.action_notes_mode.setChecked(False)
         self.action_notes_mode.triggered.emit(False)
@@ -430,13 +433,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.move(self._before_flow_pos)
                 delattr(self, '_before_flow_pos')
         self.setWindowFlag(Qt.WindowType.Tool, selected)
-        self._notes_mode_(selected, False)
+        self.action_notes_mode.setChecked(True)
+        self.action_notes_mode.triggered.emit(True)
         if selected:
             self._before_flow_size = self.size()
             self._before_flow_pos = self.pos()
-            self.resize(QSize(self.menubar.width(), 16))
+            self.resize(QSize(self.menubar.width(), 64 + 32))
             cursor_pos = QCursor().pos()
-            self.move(QPoint(cursor_pos.x() - self.size().width() // 2, cursor_pos.y() + 16))
+            self.move(QPoint(cursor_pos.x() - self.size().width() // 2, cursor_pos.y() + 64 + 32))
         self._table_view.scrollTo(self._table_view.currentIndex())
 
     @property
