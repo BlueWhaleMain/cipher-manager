@@ -22,8 +22,9 @@
 #
 import time
 
+import keyboard
 from Crypto.PublicKey import RSA
-from PyQt6.QtCore import QUrl, Qt, QEvent, QTimer, QPropertyAnimation
+from PyQt6.QtCore import QUrl, Qt, QEvent, QTimer, pyqtSignal, QSize, QPoint
 from PyQt6.QtGui import QDesktopServices, QStandardItemModel, QDropEvent, QDragEnterEvent, QCloseEvent, QHideEvent, \
     QKeyEvent, QCursor, QMouseEvent
 from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox, QInputDialog, QFileDialog, QSystemTrayIcon
@@ -46,6 +47,8 @@ from gui.widgets.table_view.cipher_file import CipherFileTableView
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     """应用程序主窗口"""
+    insert_selection_triggered = pyqtSignal()
+    toggle_flow_mode_triggered = pyqtSignal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -91,6 +94,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.action_stay_on_top.triggered.connect(self._stay_on_top)
         self.action_notes_mode.triggered.connect(self._notes_mode)
+        self.action_flow_mode.triggered.connect(self._flow_mode)
         self.action_resize_column.triggered.connect(self._resize_column)
         self.action_auto_lock.triggered.connect(self._refresh)
 
@@ -103,6 +107,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.action_about.triggered.connect(self._about)
         self.action_github.triggered.connect(self._open_github)
         self.action_check_for_updates.triggered.connect(self._check_for_updates)
+
+        self.insert_selection_triggered.connect(self._insert_selection)
+        keyboard.add_hotkey('Ctrl+Alt+Space', self.insert_selection_triggered.emit, suppress=True)
+        self.toggle_flow_mode_triggered.connect(self._toggle_flow_mode)
+        keyboard.add_hotkey('Ctrl+Alt+V', self.toggle_flow_mode_triggered.emit, suppress=True)
 
         self._table_view.refreshed.connect(self._refresh)
         self.setStatusTip(self.tr('就绪'))
@@ -168,9 +177,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     @report_with_exception
     def keyPressEvent(self, e: QKeyEvent) -> None:
         if e.key() == Qt.Key.Key_F12:
-            self.action_notes_mode.setChecked(False)
-            self._notes_mode_(False)
+            self._quit_notes_mode()
         super().keyPressEvent(e)
+
+    def setWindowFlag(self, a0, on=...):
+        super().setWindowFlag(a0, on)
+        self.action_stay_on_top.setChecked(self.windowFlags() & Qt.WindowType.WindowStaysOnTopHint)
 
     @report_with_exception
     def _application_state_changed(self, state: Qt.ApplicationState):
@@ -203,6 +215,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                         new_instance(restart=True)
                 self._system_tray_icon.showMessage(self.tr('提示'), self.tr('因长时间未活动，应用已重启'))
                 return
+            if self.action_notes_mode.isChecked():
+                self._quit_notes_mode()
             if self.action_auto_lock.isChecked():
                 self._try_lock_(True)
         finally:
@@ -284,6 +298,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._notes_mode_(selected)
 
     @report_with_exception
+    def _flow_mode(self, selected):
+        self._flow_mode_(selected)
+
+    @report_with_exception
     def _resize_column(self, _):
         self._table_view.resizeColumnsToContents()
 
@@ -339,6 +357,35 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _refresh(self, _):
         self._refresh_()
 
+    @report_with_exception
+    def _insert_selection(self):
+        self._reset_idle()
+        if QApplication.modalWindow() is not None:
+            return
+        old_window_flags = self.windowFlags()
+        if self._table_view.locked:
+            self.setWindowFlag(Qt.WindowType.WindowDoesNotAcceptFocus, True)
+            try:
+                self._table_view.insert_selection()
+            finally:
+                self.setWindowFlags(old_window_flags)
+                self.showMinimized()
+        elif self._table_view.locked is False:
+            self._table_view.insert_selection()
+        else:
+            self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
+            self.show()
+            self._table_view.open_file()
+            self.setWindowFlags(old_window_flags)
+            self._toggle_flow_mode()
+
+    @report_with_exception
+    def _toggle_flow_mode(self):
+        self._reset_idle()
+        checked = not self.action_flow_mode.isChecked() or not self.isActiveWindow()
+        self.action_flow_mode.setChecked(checked)
+        self.action_flow_mode.triggered.emit(checked)
+
     def _auto_save_(self):
         self._table_view.auto_save()
 
@@ -358,13 +405,38 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _open_file_(self, filepath: str | None = None):
         self._table_view.open_file(filepath)
 
-    def _notes_mode_(self, selected):
-        self.action_auto_lock.setChecked(not selected)
-        if not self.action_stay_on_top.isChecked():
-            self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, selected)
+    def _notes_mode_(self, selected, disable_auto_lock=True):
+        if disable_auto_lock:
+            self.action_auto_lock.setChecked(not selected)
+        self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, selected)
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint, selected)
         self.menubar.setVisible(not selected)
+        self.statusbar.setVisible(not selected)
         self.show()
+
+    def _quit_notes_mode(self):
+        if not self.action_notes_mode.isChecked():
+            return
+        self.action_notes_mode.setChecked(False)
+        self.action_notes_mode.triggered.emit(False)
+
+    def _flow_mode_(self, selected):
+        if not selected:
+            if hasattr(self, '_before_flow_size'):
+                self.resize(self._before_flow_size)
+                delattr(self, '_before_flow_size')
+            if hasattr(self, '_before_flow_pos'):
+                self.move(self._before_flow_pos)
+                delattr(self, '_before_flow_pos')
+        self.setWindowFlag(Qt.WindowType.Tool, selected)
+        self._notes_mode_(selected, False)
+        if selected:
+            self._before_flow_size = self.size()
+            self._before_flow_pos = self.pos()
+            self.resize(QSize(self.menubar.width(), 16))
+            cursor_pos = QCursor().pos()
+            self.move(QPoint(cursor_pos.x() - self.size().width() // 2, cursor_pos.y() + 16))
+        self._table_view.scrollTo(self._table_view.currentIndex())
 
     @property
     def _lock_title(self) -> str:

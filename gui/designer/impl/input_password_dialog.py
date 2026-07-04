@@ -25,7 +25,7 @@ import functools
 from typing import Callable, AnyStr
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QLineEdit, QWidget, QMessageBox, QDialog
+from PyQt6.QtWidgets import QLineEdit, QWidget, QMessageBox, QDialog, QApplication
 
 from cm import CmValueError
 from cm.error import CmRuntimeError, CmInterrupt
@@ -148,6 +148,12 @@ class InputPasswordDialog(QDialog, Ui_InputPasswordDialog):
 
         if protect_content:
             GLOBAL_SIGNAL.app_try_lock.connect(self._try_lock)
+
+        self.show()
+        self.activateWindow()
+        if QApplication.applicationState() != Qt.ApplicationState.ApplicationActive:
+            self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
+            QApplication.alert(parent)
 
         self.exec()
         if self._result is None:

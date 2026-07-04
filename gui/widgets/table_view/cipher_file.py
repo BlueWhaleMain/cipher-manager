@@ -30,6 +30,7 @@ import shutil
 from io import StringIO
 from typing import Callable, AnyStr
 
+import keyboard
 from PyQt6.QtCore import pyqtSignal, Qt, QAbstractItemModel, QModelIndex, pyqtBoundSignal
 from PyQt6.QtGui import QAction, QIcon, QCursor, QStandardItem, QStandardItemModel, QColor
 from PyQt6.QtWidgets import QMessageBox, QProgressDialog, QInputDialog, QStyledItemDelegate, QTableView, QWidget, \
@@ -574,6 +575,13 @@ class CipherFileTableView(QTableView):
                 return True
         return False
 
+    def insert_selection(self):
+        if not self._suggest_unlock():
+            return
+        index = self.currentIndex()
+        keyboard.write((self._cipher_file.get_cell(index.row(), index.column()) or '') + '\n',
+                       restore_state_after=False, exact=True)
+
     @property
     def _cipher_file(self) -> TableRecordCipherFile:
         if not self.has_file:
@@ -929,6 +937,7 @@ class CipherFileTableView(QTableView):
         assert isinstance(model, QStandardItemModel), self.tr('意料之外的数据模型')
 
         if reload:
+            index = self.currentIndex()
             model.removeRows(0, model.rowCount())
             model.setRowCount(0)
             model.setColumnCount(0)
@@ -943,6 +952,7 @@ class CipherFileTableView(QTableView):
             self.resizeColumnsToContents()
             for col in range(model.columnCount()):
                 self.setColumnWidth(col, min(self.columnWidth(col), 255))
+            self.setCurrentIndex(index)
         self.action_decrypt_row.setEnabled(model.rowCount() > 1)
         self.action_decrypt_col.setEnabled(model.columnCount() > 1)
         self.action_row_insert.setEnabled(model.rowCount() > 1)

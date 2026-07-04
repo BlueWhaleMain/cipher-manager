@@ -90,6 +90,7 @@
     </property>
     <addaction name="action_stay_on_top"/>
     <addaction name="action_notes_mode"/>
+    <addaction name="action_flow_mode"/>
     <addaction name="separator"/>
     <addaction name="action_resize_column"/>
     <addaction name="separator"/>
@@ -488,6 +489,14 @@
    </property>
    <property name="statusTip">
     <string>从文件中合并</string>
+   </property>
+  </action>
+  <action name="action_flow_mode">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>悬浮窗模式</string>
    </property>
   </action>
  </widget>
