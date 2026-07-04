@@ -40,6 +40,7 @@ if not "%2"=="" (
 	)
 	echo 压缩文件...
 	.\.venv\Scripts\python.exe zip.py -i %~dp0dist\%name% -o %~dp0dist\Publish -n %name%-%ver%-win32.zip && attrib +r %~dp0dist\Publish\%name%-%ver%-win32.zip
+	"C:\Program Files\Git\usr\bin\gpg.exe" --detach-sign %~dp0dist\Publish\%name%-%ver%-win32.zip
 	echo 清理临时文件...
 	rd /s /q %~dp0dist\%name%\.
 ) else (
