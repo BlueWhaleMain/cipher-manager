@@ -98,6 +98,8 @@ class OtpDialog(QtWidgets.QDialog, Ui_otp_dialog):
         self.cipher_plain_text_edit.setPlainText(code)
         self.cipher_plain_text_edit.setDisabled(True)
         self.lock_cipher_check_box.setChecked(True)
+        self.lock_cipher_check_box.setEnabled(False)
+        self.cipher_plain_text_edit.setPlainText('*' * len(code))
         self.show()
 
     @report_with_exception
