@@ -205,11 +205,14 @@ class CipherFileTableView(QTableView):
     def new_file(self) -> None:
         """创建新文件"""
         if self.has_file and self._edited:
-            button = QMessageBox.warning(self, self.tr('警告'), self.tr('有操作未保存，丢弃？'),
-                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                                         QMessageBox.StandardButton.No)
-            if button == QMessageBox.StandardButton.No:
+            button = QMessageBox.warning(self, self.tr('警告'), self.tr('有操作未保存'),
+                                         QMessageBox.StandardButton.Discard
+                                         | QMessageBox.StandardButton.Ignore
+                                         | QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Cancel)
+            if button == QMessageBox.StandardButton.Cancel:
                 return
+            elif button == QMessageBox.StandardButton.Discard:
+                self.discard_change()
         self._cipher_file = self._new_cipher_file_dialog.create_file()
         self.save_file()
 
@@ -230,10 +233,14 @@ class CipherFileTableView(QTableView):
             elif result == QMessageBox.StandardButton.Cancel:
                 return
         if self.edited:
-            result = QMessageBox.warning(self, self.tr('警告'), self.tr('有修改未保存，是否丢弃？'),
-                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-            if result == QMessageBox.StandardButton.No:
+            button = QMessageBox.warning(self, self.tr('警告'), self.tr('有操作未保存'),
+                                         QMessageBox.StandardButton.Discard
+                                         | QMessageBox.StandardButton.Ignore
+                                         | QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Cancel)
+            if button == QMessageBox.StandardButton.Cancel:
                 return
+            elif button == QMessageBox.StandardButton.Discard:
+                self.discard_change()
         swap_filepath = filepath + '~'
         if os.path.isfile(swap_filepath):
             button = QMessageBox.question(self, self.tr('提示'), self.tr('检测到未保存的更改，是否加载？'),

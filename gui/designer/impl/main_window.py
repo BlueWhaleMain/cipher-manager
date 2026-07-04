@@ -158,13 +158,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if not env.restarting and self._table_view.edited:
             result = QMessageBox.information(self, '退出', '有操作未保存。', QMessageBox.StandardButton.Save
                                              | QMessageBox.StandardButton.Discard
-                                             | QMessageBox.StandardButton.Cancel)
+                                             | QMessageBox.StandardButton.Ignore
+                                             | QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Cancel)
             if result == QMessageBox.StandardButton.Save:
                 self._table_view.save_file()
+            elif result == QMessageBox.StandardButton.Discard:
+                self._table_view.discard_change()
             elif result == QMessageBox.StandardButton.Cancel:
                 e.ignore()
                 return
-            self._table_view.discard_change()
         super().closeEvent(e)
         quit_now()
 
