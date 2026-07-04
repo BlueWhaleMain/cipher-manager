@@ -599,9 +599,9 @@ class CipherFileTableView(QTableView):
                 self.new_file()
             elif result == QMessageBox.StandardButton.Open:
                 self.open_file()
-            else:
-                raise CmInterrupt
-        assert self.__cipher_file is not None, self.tr('已经判断过文件不为空但此时文件为空')
+        # 用户取消选择文件等，视为放弃本次操作
+        if self.__cipher_file is None:
+            raise CmInterrupt
         return self.__cipher_file
 
     @_cipher_file.setter
