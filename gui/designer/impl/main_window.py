@@ -29,9 +29,10 @@ from PyQt6.QtGui import QDesktopServices, QStandardItemModel, QDropEvent, QDragE
     QKeyEvent, QCursor, QMouseEvent
 from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox, QInputDialog, QFileDialog, QSystemTrayIcon
 
-from cm.base import erase_triggered
+import cm.base
 from cm.error import CmNotImplementedError
-from gui.common.env import report_with_exception, GLOBAL_SIGNAL, new_instance, restarting, quit_now
+from gui.common import env
+from gui.common.env import report_with_exception, GLOBAL_SIGNAL, new_instance, quit_now
 from gui.common.progress import execute_in_progress
 from gui.designer.impl.about_dialog import AboutDialog
 from gui.designer.impl.basic_type_conversion_dialog import BasicTypeConversionDialog
@@ -154,7 +155,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @report_with_exception
     def closeEvent(self, e: QCloseEvent) -> None:
-        if not restarting and self._table_view.edited:
+        if not env.restarting and self._table_view.edited:
             result = QMessageBox.information(self, '退出', '有操作未保存。', QMessageBox.StandardButton.Save
                                              | QMessageBox.StandardButton.Discard
                                              | QMessageBox.StandardButton.Cancel)
@@ -199,7 +200,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         try:
             self._auto_save_()
-            if (erase_triggered
+            if (cm.base.erase_triggered
                 and self.action_auto_lock.isChecked()
                 and self._table_view.locked is not False
                 and DelayedOperationDialog.auto_confirm_with_delay(self, 10 * 1000, '应用将在10秒后重启')):
