@@ -24,12 +24,11 @@ import functools
 import logging
 import os
 import signal
-import subprocess
 import sys
 from types import TracebackType
 from typing import Any, Callable
 
-from PyQt6.QtCore import QThread, pyqtSignal, QObject
+from PyQt6.QtCore import QThread, pyqtSignal, QObject, QProcess
 from PyQt6.QtWidgets import QApplication, QMessageBox
 from psutil import Process
 
@@ -74,9 +73,31 @@ def find_path(path: str, validator=os.path.exists, external=()) -> str:
     raise FileNotFoundError(path, paths)
 
 
-def new_instance(filepath: str) -> None:
+quited = False
+restarting = False
+
+
+def quit_now():
+    global quited
+    if quited:
+        return
+    QApplication.quit()
+    quited = True
+
+
+def new_instance(*args: str | None, restart: bool = False) -> None:
     """新建应用程序实例"""
-    subprocess.Popen([*_raw_cmd_arr, filepath])
+    global restarting
+    if restart:
+        if restarting:
+            return
+        restarting = True
+        quit_now()
+    if restart and _raw_cmd_arr[0].endswith('python.exe'):
+        # 开发环境兼容：控制台不脱钩会导致重启失败
+        QProcess().startDetached('cmd.exe', ['/c', 'start', *_raw_cmd_arr, *args])
+        return
+    QProcess().startDetached(_raw_cmd_arr[0], [*_raw_cmd_arr[1:], *args])
 
 
 # 避免一个异常记录两次

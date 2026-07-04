@@ -20,18 +20,22 @@
 #  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #  SOFTWARE.
 #
+import time
+
 from Crypto.PublicKey import RSA
 from PyQt6.QtCore import QUrl, Qt, QEvent, QTimer, QPropertyAnimation
 from PyQt6.QtGui import QDesktopServices, QStandardItemModel, QDropEvent, QDragEnterEvent, QCloseEvent, QHideEvent, \
     QKeyEvent, QCursor, QMouseEvent
 from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox, QInputDialog, QFileDialog, QSystemTrayIcon
 
+from cm.base import erase_triggered
 from cm.error import CmNotImplementedError
-from gui.common.env import report_with_exception, GLOBAL_SIGNAL
+from gui.common.env import report_with_exception, GLOBAL_SIGNAL, new_instance, restarting, quit_now
 from gui.common.progress import execute_in_progress
 from gui.designer.impl.about_dialog import AboutDialog
 from gui.designer.impl.basic_type_conversion_dialog import BasicTypeConversionDialog
 from gui.designer.impl.check_for_updates_form import CheckForUpdatesForm
+from gui.designer.impl.delayed_operation_confirm_dialog import DelayedOperationDialog
 from gui.designer.impl.input_password_dialog import InputPasswordDialog
 from gui.designer.impl.otp_dialog import OtpDialog
 from gui.designer.impl.random_password_dialog import RandomPasswordDialog
@@ -53,12 +57,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._table_view = CipherFileTableView(self.central_widget)
         self.grid_layout.addWidget(self._table_view, 0, 0, 1, 1)
         self._table_view.setModel(QStandardItemModel(self._table_view))
-        self._idle_max = 30
-        self._idle_show_threshold = 10
-        self._idle_remain_seconds = self._idle_max
+        self._idle_waiting = False
+        self._idle_max = 30 * 1000
         self._idle_timer = QTimer(self)
         self._idle_timer.timeout.connect(self._idle_timeout)
-        self._idle_timer.start(1000)
+        self._idle_timer.start(self._idle_max)
         self._search_dialog = SearchDialog(self._table_view, self)
         self._about_dialog: AboutDialog = AboutDialog(self)
         self._random_password_dialog: RandomPasswordDialog = RandomPasswordDialog(self)
@@ -120,14 +123,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     @report_with_exception
     def eventFilter(self, o, e: QEvent) -> bool:
         if isinstance(e, QMouseEvent) or isinstance(e, QKeyEvent):
-            should_refresh = False
-            if self._idle_remain_seconds <= self._idle_show_threshold:
-                should_refresh = True
-            self._idle_remain_seconds = self._idle_max
-            if should_refresh:
-                self._opacity_fade(self.windowOpacity(), 1, 1000)
-                self._refresh_()
-        return False
+            self._reset_idle()
+        return super().eventFilter(o, e)
 
     @report_with_exception
     def dropEvent(self, e: QDropEvent) -> None:
@@ -148,7 +145,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @report_with_exception
     def closeEvent(self, e: QCloseEvent) -> None:
-        if self._table_view.edited:
+        if not restarting and self._table_view.edited:
             result = QMessageBox.information(self, '退出', '有操作未保存。', QMessageBox.StandardButton.Save
                                              | QMessageBox.StandardButton.Discard
                                              | QMessageBox.StandardButton.Cancel)
@@ -159,11 +156,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 return
             self._table_view.discard_change()
         super().closeEvent(e)
+        quit_now()
 
     @report_with_exception
     def hideEvent(self, e: QHideEvent) -> None:
         self._auto_save_()
-        self._try_lock_()
+        if self.action_auto_lock.isChecked():
+            self._try_lock_()
         super().hideEvent(e)
 
     @report_with_exception
@@ -177,26 +176,38 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _application_state_changed(self, state: Qt.ApplicationState):
         if state != Qt.ApplicationState.ApplicationActive:
             self._auto_save_()
-            self._try_lock_()
-        if self.isVisible():
-            self._refresh_()
+            if self.action_auto_lock.isChecked():
+                self._try_lock_()
 
     @report_with_exception
     def _idle_timeout(self):
-        if self._idle_remain_seconds > -1:
-            self._idle_remain_seconds -= 1
-        if self._idle_remain_seconds == 0:
-            self._try_lock_()
-            self._idle_remain_seconds = self._idle_max
-            self._refresh_()
-        elif 0 < self._idle_remain_seconds <= self._idle_show_threshold:
-            # 自动锁定且确实未锁定时才有淡出特效，为防万一，其他情况仍可能尝试自动锁定，只是不显示淡出特效以减少打扰
-            if not self.action_auto_lock.isChecked() or self._table_view.locked is not False:
-                return
+        if self._idle_waiting:
+            return
+        self._idle_waiting = True
 
-            if self._idle_remain_seconds == self._idle_show_threshold:
-                self._opacity_fade(self.windowOpacity(), 0.1, self._idle_remain_seconds * 1000)
-            self._refresh_()
+        try:
+            self._auto_save_()
+            if (erase_triggered
+                and self.action_auto_lock.isChecked()
+                and self._table_view.locked is not False
+                and DelayedOperationDialog.auto_confirm_with_delay(self, 10 * 1000, '应用将在10秒后重启')):
+                if self._table_view.filepath:
+                    new_instance(self._table_view.filepath, restart=True)
+                else:
+                    if self._table_view.edited:
+                        bak = 'backup_' + time.strftime("%Y%m%d%H%M%S", time.localtime()) + '.pkl'
+                        self._table_view.save_file(bak)
+                        new_instance(bak, restart=True)
+                    else:
+                        # 兜底，一般走不到这个case
+                        new_instance(restart=True)
+                self._system_tray_icon.showMessage(self.tr('提示'), self.tr('因长时间未活动，应用已重启'))
+                return
+            if self.action_auto_lock.isChecked():
+                self._try_lock_(True)
+        finally:
+            self._idle_waiting = False
+            self._reset_idle()
 
     @report_with_exception
     def _new_file(self, _):
@@ -331,20 +342,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _auto_save_(self):
         self._table_view.auto_save()
 
-    def _try_lock_(self):
+    def _try_lock_(self, idle_wait=False):
         GLOBAL_SIGNAL.app_try_lock.emit()
 
-        # 没有选择任何文件
-        if not self._table_view.has_file:
-            return
-        # 未启用自动锁定
-        if not self.action_auto_lock.isChecked():
+        # 此处仅在未锁定时提示以减少打扰
+        if (idle_wait and self._table_view.locked is False
+            and DelayedOperationDialog.auto_confirm_with_delay(self, 10 * 1000, '应用将在10秒后锁定') is False):
             return
 
-        app = QApplication.instance()
-        assert isinstance(app, QApplication)
-        if self._table_view.lock() and app.applicationState() != Qt.ApplicationState.ApplicationActive:
+        if self._table_view.lock() and QApplication.applicationState() != Qt.ApplicationState.ApplicationActive:
             self._system_tray_icon.showMessage(self.tr('提示'), self.tr('已锁定'))
+
+        self._refresh_()
 
     def _open_file_(self, filepath: str | None = None):
         self._table_view.open_file(filepath)
@@ -364,24 +373,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self._table_view.locked:
             return self.tr('已锁定')
         if self.action_auto_lock.isChecked():
-            if 0 < self._idle_remain_seconds < self._idle_show_threshold:
-                return self.tr('即将于{}秒后锁定').format(self._idle_remain_seconds)
             return self.tr('自动锁定已开启')
         return ''
 
-    def _opacity_fade(self, from_val: float, to_val: float, duration: int):
-        self._opacity_fade_animation = QPropertyAnimation(self, b'windowOpacity')
-        self._opacity_fade_animation.stop()
-        self._opacity_fade_animation.setDuration(duration)
-        self._opacity_fade_animation.setStartValue(from_val)
-        self._opacity_fade_animation.setEndValue(to_val)
-        self._opacity_fade_animation.start()
+    def _reset_idle(self):
+        self._idle_timer.start()
 
     def _refresh_(self):
-        if self._idle_remain_seconds > self._idle_show_threshold:
-            if self.windowOpacity() < 1:
-                self._opacity_fade(self.windowOpacity(), 1, 100)
-
         self.setWindowTitle(f'{"*" if self._table_view.edited else ""}'
                             f'{f"{self._table_view.filepath} - " if self._table_view.filepath else ""}'
                             f'{self._name}'

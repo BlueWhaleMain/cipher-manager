@@ -33,10 +33,14 @@ def copy_bytes(data: bytes) -> bytes:
 
 # 指示擦除是否被禁用
 erase_disabled = False
+# 指示是否尝试过擦除操作
+erase_triggered = False
 
 
 def erase(secret):
     """擦除一个对象"""
+    global erase_triggered
+    erase_triggered = True
     if erase_disabled:
         return
     if sys.maxsize > 2 ^ 32:
