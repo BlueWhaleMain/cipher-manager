@@ -106,6 +106,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.action_basic_type_conversion.triggered.connect(self._basic_type_conversion)
 
         self.action_about.triggered.connect(self._about)
+        self.action_about_qt.triggered.connect(QApplication.aboutQt)
         self.action_github.triggered.connect(self._open_github)
         self.action_check_for_updates.triggered.connect(self._check_for_updates)
 

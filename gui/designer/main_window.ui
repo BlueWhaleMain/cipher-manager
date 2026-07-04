@@ -101,6 +101,7 @@
      <string>?</string>
     </property>
     <addaction name="action_about"/>
+    <addaction name="action_about_qt"/>
     <addaction name="action_github"/>
     <addaction name="action_check_for_updates"/>
    </widget>
@@ -497,6 +498,14 @@
    </property>
    <property name="text">
     <string>悬浮窗模式</string>
+   </property>
+  </action>
+  <action name="action_about_qt">
+   <property name="text">
+    <string>关于Qt</string>
+   </property>
+   <property name="statusTip">
+    <string>关于Qt</string>
    </property>
   </action>
  </widget>
