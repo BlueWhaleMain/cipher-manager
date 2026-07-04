@@ -29,7 +29,7 @@ from PyQt6.QtWidgets import QApplication, QSplashScreen
 def main():
     """应用程序主入口"""
     app = QApplication(sys.argv)
-    splash = QSplashScreen()
+    splash = QSplashScreen(flags=Qt.WindowType.WindowStaysOnTopHint)
     splash.showMessage('Loading...', Qt.AlignmentFlag.AlignCenter, Qt.GlobalColor.white)
     splash.show()
     QApplication.processEvents()
